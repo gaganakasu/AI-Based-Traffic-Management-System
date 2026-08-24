@@ -1,0 +1,2789 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Based Traffic Management System - Control Room Dashboard</title>
+    <meta name="description" content="AI-Based Traffic Management System prototype for live traffic-control room simulation, network monitoring, density analysis, and adaptive signal optimization.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#030712',
+                        darkpanel: 'rgba(13, 20, 40, 0.75)',
+                        neoncyan: '#00f0ff',
+                        neongreen: '#00ff87',
+                        neonpink: '#ff007f',
+                        neonyellow: '#ffd700',
+                        neonpurple: '#a855f7',
+                        neonorange: '#ff6b00',
+                        glassborder: 'rgba(255, 255, 255, 0.09)',
+                        glassglow: 'rgba(0, 240, 255, 0.15)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Space Grotesk', 'monospace'],
+                        display: ['Space Grotesk', 'sans-serif']
+                    },
+                    boxShadow: {
+                        neon: '0 0 25px rgba(0, 240, 255, 0.35)',
+                        neongreen: '0 0 25px rgba(0, 255, 135, 0.4)',
+                        neonpink: '0 0 25px rgba(255, 0, 127, 0.4)',
+                        neonyellow: '0 0 25px rgba(255, 215, 0, 0.4)',
+                        neonpurple: '0 0 25px rgba(168, 85, 247, 0.4)',
+                        glowcard: '0 12px 40px 0 rgba(0, 0, 0, 0.65)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-green: #00ff87;
+            --neon-pink: #ff007f;
+            --neon-yellow: #ffd700;
+        }
+
+        body {
+            background-color: #030712;
+            color: #f1f5f9;
+            overflow-x: hidden;
+            font-family: 'Outfit', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 45%),
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.03) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        
+        /* Custom Glowing Scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #1e293b, #334155);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+            box-shadow: 0 0 10px #00f0ff;
+        }
+        
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(11, 18, 38, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-panel:hover {
+            border-color: rgba(0, 240, 255, 0.22);
+        }
+
+        .glass-card-interactive {
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .glass-card-interactive:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 36px -10px rgba(0, 240, 255, 0.2);
+            border-color: rgba(0, 240, 255, 0.35);
+        }
+
+        /* Pulsing Rings & Badges */
+        .pulse-live {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+        }
+
+        .pulse-glow-cyan {
+            animation: glow-cyan 3s infinite alternate;
+        }
+        @keyframes glow-cyan {
+            0% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+            100% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+        }
+
+        .pulse-glow-emergency {
+            animation: glow-emergency 1.2s infinite alternate;
+        }
+        @keyframes glow-emergency {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.85); }
+        }
+        
+        /* Map custom styling */
+        .leaflet-container {
+            background-color: #030712 !important;
+            border-radius: 1rem;
+        }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #0b1329 !important;
+            color: #fff !important;
+            border: 1px solid #00f0ff !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Animated Road Intersection Cars */
+        @keyframes car-flow-ns {
+            0% { transform: translateY(-130px); opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateY(130px); opacity: 0; }
+        }
+        @keyframes car-flow-ew {
+            0% { transform: translateX(-130px); opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateX(130px); opacity: 0; }
+        }
+        .anim-car-ns-1 { animation: car-flow-ns 2.4s linear infinite; }
+        .anim-car-ns-2 { animation: car-flow-ns 2.4s linear infinite 1.2s; }
+        .anim-car-ew-1 { animation: car-flow-ew 2.4s linear infinite; }
+        .anim-car-ew-2 { animation: car-flow-ew 2.4s linear infinite 1.2s; }
+
+        /* Animated Corridor Traffic Dots on Map */
+        @keyframes flow-line-h {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        @keyframes flow-line-v {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* Gradient Borders */
+        .neon-border-gradient {
+            position: relative;
+        }
+        .neon-border-gradient::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1.5px;
+            background: linear-gradient(135deg, rgba(0,240,255,0.6), rgba(168,85,247,0.3), rgba(0,255,135,0.6));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* Tab Active States */
+        .tab-btn.active {
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.18), rgba(0, 240, 255, 0.04));
+            color: #00f0ff !important;
+            border-left: 3px solid #00f0ff;
+            box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.08);
+        }
+
+        /* Preset Button Active States */
+        .preset-btn.active-preset-balanced {
+            background: rgba(0, 255, 135, 0.2) !important;
+            border-color: #00ff87 !important;
+            color: #00ff87 !important;
+            box-shadow: 0 0 15px rgba(0, 255, 135, 0.3) !important;
+        }
+        .preset-btn.active-preset-rush {
+            background: rgba(245, 158, 11, 0.25) !important;
+            border-color: #f59e0b !important;
+            color: #fbbf24 !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.35) !important;
+        }
+        .preset-btn.active-preset-emergency {
+            background: rgba(239, 68, 68, 0.3) !important;
+            border-color: #ef4444 !important;
+            color: #f87171 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+        }
+        .preset-btn.active-preset-incident {
+            background: rgba(244, 63, 94, 0.25) !important;
+            border-color: #f43f5e !important;
+            color: #fb7185 !important;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.35) !important;
+        }
+
+        /* Range Slider */
+        input[type="range"] {
+            accent-color: #00f0ff;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col antialiased select-none text-slate-200">
+
+    <!-- STARTUP SCREEN -->
+    <div id="startup-screen" class="fixed inset-0 z-50 bg-[#020617] flex flex-col justify-center items-center transition-all duration-700">
+        <div class="text-center space-y-6 max-w-md px-6">
+            <div class="relative w-28 h-28 mx-auto mb-2 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-2 border-neoncyan/20 animate-ping"></div>
+                <div class="absolute inset-2 rounded-full border-2 border-t-neoncyan border-r-neonpurple border-b-transparent border-l-transparent animate-spin"></div>
+                <div class="w-16 h-16 rounded-2xl bg-slate-900/90 border border-neoncyan/40 flex items-center justify-center shadow-neon">
+                    <i data-lucide="radio" class="w-8 h-8 text-neoncyan drop-shadow-[0_0_15px_rgba(0,240,255,0.8)]"></i>
+                </div>
+            </div>
+            
+            <div>
+                <h1 class="text-3xl font-black tracking-wider font-mono text-white">
+                    AI TRAFFIC <span class="text-transparent bg-clip-text bg-gradient-to-r from-neoncyan via-neongreen to-neonpurple">CONTROL ROOM</span>
+                </h1>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Live Traffic Monitoring & Adaptive Signal Simulation</p>
+            </div>
+            
+            <div class="space-y-3 bg-slate-900/80 p-5 rounded-2xl border border-slate-800 text-left font-mono text-xs shadow-xl">
+                <div class="flex justify-between items-center" id="loader-step-1">
+                    <span class="flex items-center"><i data-lucide="map" class="w-3.5 h-3.5 mr-2 text-neoncyan"></i> Live City Traffic Map Mesh</span>
+                    <span class="text-neoncyan flex items-center"><i data-lucide="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Initializing</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-600" id="loader-step-2">
+                    <span class="flex items-center"><i data-lucide="sparkles" class="w-3.5 h-3.5 mr-2 text-purple-400"></i> Adaptive Signal Optimizer (15s/30s/45s)</span>
+                    <span>Pending</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-600" id="loader-step-3">
+                    <span class="flex items-center"><i data-lucide="layout-grid" class="w-3.5 h-3.5 mr-2 text-emerald-400"></i> 4-Way Intersection Telemetry</span>
+                    <span>Pending</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-600" id="loader-step-4">
+                    <span class="flex items-center"><i data-lucide="sliders" class="w-3.5 h-3.5 mr-2 text-rose-400"></i> Scenario Engine (Balanced, Rush, Emergency, Incident)</span>
+                    <span>Pending</span>
+                </div>
+            </div>
+
+            <button onclick="fastTrackStartup()" class="text-xs text-slate-400 hover:text-neoncyan underline tracking-wide font-mono transition">
+                ⚡ Skip intro & launch control room
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="main-app" class="hidden flex-1 flex flex-col overflow-hidden">
+        
+        <!-- TOP HEADER NAVBAR -->
+        <header class="h-16 border-b border-glassborder glass-panel flex items-center justify-between px-4 sm:px-6 z-20">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('overview')">
+                <div class="w-10 h-10 bg-gradient-to-br from-neoncyan/20 to-neonpurple/20 border border-neoncyan/40 rounded-xl flex items-center justify-center shadow-neon">
+                    <i data-lucide="activity" class="w-5 h-5 text-neoncyan"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold tracking-wider font-display text-base sm:text-lg text-white flex items-center">
+                        AI TRAFFIC <span class="text-transparent bg-clip-text bg-gradient-to-r from-neoncyan to-neongreen ml-1">MANAGEMENT</span>
+                        <span class="ml-2 text-[10px] bg-neoncyan/10 border border-neoncyan/30 text-neoncyan px-1.5 py-0.5 rounded font-mono font-bold">CONTROL ROOM</span>
+                    </h1>
+                    <span class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase block">Simulated Live Traffic Network & Optimization</span>
+                </div>
+            </div>
+
+            <!-- ONE-CLICK SCENARIO PRESETS BAR -->
+            <div class="hidden lg:flex items-center space-x-2 bg-slate-950/80 p-1.5 rounded-xl border border-glassborder">
+                <span class="text-[10px] font-bold text-slate-400 font-mono uppercase px-2 flex items-center">
+                    <i data-lucide="sliders" class="w-3 h-3 mr-1 text-neoncyan"></i> Preset:
+                </span>
+                <button onclick="applyScenarioPreset('balanced')" id="preset-btn-balanced" class="preset-btn px-3 py-1 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-glassborder transition flex items-center space-x-1.5 active-preset-balanced" title="Normal simulated traffic flow">
+                    <span>🟢 Balanced</span>
+                </button>
+                <button onclick="applyScenarioPreset('rush')" id="preset-btn-rush" class="preset-btn px-3 py-1 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-amber-950/40 text-slate-300 border border-glassborder transition flex items-center space-x-1.5" title="Simulate peak-hour congestion across network">
+                    <span>🚗 Rush Hour</span>
+                </button>
+                <button onclick="applyScenarioPreset('emergency')" id="preset-btn-emergency" class="preset-btn px-3 py-1 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-red-950/40 text-slate-300 border border-glassborder transition flex items-center space-x-1.5" title="Simulate emergency priority corridor">
+                    <span>🚨 Emergency (Sim)</span>
+                </button>
+                <button onclick="applyScenarioPreset('incident')" id="preset-btn-incident" class="preset-btn px-3 py-1 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-rose-950/40 text-slate-300 border border-glassborder transition flex items-center space-x-1.5" title="Simulate roadway obstruction at Junction 01">
+                    <span>⚠️ Incident (Sim)</span>
+                </button>
+            </div>
+            
+            <!-- Quick Controls & Header Info -->
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <!-- Clock -->
+                <div class="text-right hidden md:block">
+                    <div id="current-time" class="font-mono text-sm font-bold text-white tracking-wide">00:00:00</div>
+                    <div id="current-date" class="text-[10px] text-slate-400 font-medium">Control Room Active</div>
+                </div>
+
+                <!-- Sim Flow Control Buttons -->
+                <div class="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-glassborder">
+                    <button onclick="controlSim('pause')" id="btn-pause" class="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-900 transition" title="Pause Simulation">
+                        <i data-lucide="pause" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="controlSim('resume')" id="btn-resume" class="p-1.5 text-neoncyan hover:text-white rounded-lg hover:bg-slate-900 transition hidden" title="Resume Simulation">
+                        <i data-lucide="play" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="controlSim('reset')" class="p-1.5 text-slate-400 hover:text-neoncyan rounded-lg hover:bg-slate-900 transition" title="Reset to Balanced Mode">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Simulation Speed Control -->
+                <div class="hidden xl:flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-glassborder text-[11px] font-mono font-bold">
+                    <button onclick="setSimSpeed(1)" id="spd-1x" class="px-2 py-1 rounded-lg bg-slate-800 text-neoncyan">1x</button>
+                    <button onclick="setSimSpeed(2)" id="spd-2x" class="px-2 py-1 rounded-lg text-slate-400 hover:text-white">2x</button>
+                    <button onclick="setSimSpeed(4)" id="spd-4x" class="px-2 py-1 rounded-lg text-slate-400 hover:text-white">4x</button>
+                </div>
+
+                <!-- Audio FX Toggle -->
+                <button onclick="toggleAudio()" id="btn-sound" class="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-glassborder text-slate-400 hover:text-neoncyan transition" title="Toggle Sound">
+                    <i data-lucide="volume-2" id="icon-sound" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Live Status indicator -->
+                <div id="connection-badge" class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                    <span id="connection-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse pulse-live"></span>
+                    <span id="connection-text" class="text-xs text-emerald-400 font-bold font-mono tracking-wider">LIVE TRAFFIC SIMULATION</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- WRAPPER (SIDEBAR + MAIN CONTENT AREA) -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- LEFT NAVIGATION SIDEBAR -->
+            <aside class="w-64 border-r border-glassborder glass-panel hidden md:flex flex-col justify-between p-4 z-10">
+                <nav class="space-y-1">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-3 mb-2 flex items-center">
+                        <i data-lucide="compass" class="w-3 h-3 mr-1.5 text-neoncyan"></i> Navigation Menu
+                    </p>
+                    
+                    <!-- 1. Overview Control -->
+                    <button onclick="switchTab('overview')" id="nav-overview" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 text-neoncyan"></i>
+                        <span>Overview Control</span>
+                    </button>
+
+                    <!-- 2. Live Traffic Map -->
+                    <button onclick="switchTab('map')" id="nav-map" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="map" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Live Traffic Map</span>
+                    </button>
+                    
+                    <!-- 3. 4-Way Junction Visualizer -->
+                    <button onclick="switchTab('monitoring')" id="nav-monitoring" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="monitor" class="w-4 h-4 text-purple-400"></i>
+                        <span>4-Way Junction Visualizer</span>
+                    </button>
+
+                    <!-- 4. AI Signal Optimization -->
+                    <button onclick="switchTab('optimization')" id="nav-optimization" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                        <span>AI Signal Optimization</span>
+                    </button>
+                    
+                    <!-- 5. Scenario Simulation -->
+                    <button onclick="switchTab('sandbox')" id="nav-sandbox" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="sliders" class="w-4 h-4 text-rose-400"></i>
+                        <span>Scenario Simulation</span>
+                    </button>
+
+                    <!-- 6. Analytics Center -->
+                    <button onclick="switchTab('analytics')" id="nav-analytics" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i>
+                        <span>Analytics Center</span>
+                    </button>
+
+                    <!-- 7. System Controls -->
+                    <button onclick="switchTab('controls')" id="nav-controls" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-slate-900/50">
+                        <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+                        <span>System Controls</span>
+                    </button>
+                </nav>
+                
+                <!-- Bottom AI Engine Status Card -->
+                <div class="bg-gradient-to-b from-slate-950/80 to-slate-900/60 p-4 rounded-2xl border border-glassborder text-xs space-y-2.5 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-300 flex items-center font-mono text-[11px]">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5 mr-1.5 text-neoncyan"></i> AI SIMULATION CORE
+                        </span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-400">Network Nodes:</span>
+                        <span class="text-white font-mono font-semibold">6 Intersections</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-400">Signal Logic:</span>
+                        <span class="text-emerald-400 font-bold font-mono">15s / 30s / 45s Dynamic</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-400">Data Source:</span>
+                        <span class="text-neoncyan font-mono text-[10px]">Simulated Live Data</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- MAIN WORKSPACE PAGE CONTAINER -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 pb-20">
+                
+                <!-- ALERTS SYSTEM TOAST CONTAINER -->
+                <div id="alert-toast-container" class="fixed top-20 right-6 z-50 max-w-sm space-y-2 pointer-events-none"></div>
+
+                <!-- ==================== 1. OVERVIEW DASHBOARD PAGE ==================== -->
+                <section id="page-overview" class="tab-page space-y-6">
+                    
+                    <!-- ACTIVE SCENARIO HERO BANNER -->
+                    <div id="hero-scenario-banner" class="glass-panel p-6 rounded-3xl relative overflow-hidden neon-border-gradient flex flex-col lg:flex-row items-center justify-between gap-6">
+                        <div class="relative z-10 space-y-2 max-w-2xl text-center lg:text-left">
+                            <div class="inline-flex items-center space-x-2 bg-neoncyan/10 border border-neoncyan/30 px-3 py-1 rounded-full text-xs font-mono font-bold text-neoncyan">
+                                <i data-lucide="radio" class="w-3.5 h-3.5 animate-pulse"></i>
+                                <span id="banner-mode-pill">ACTIVE MODE: BALANCED</span>
+                            </div>
+                            <h2 id="banner-title" class="text-2xl sm:text-3xl font-black text-white font-display">
+                                Normal Traffic Control (Balanced)
+                            </h2>
+                            <p id="banner-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                                Standard traffic conditions with balanced vehicle distribution across network junctions. Traffic signals operating on adaptive cycle recommendations.
+                            </p>
+                            <div class="flex flex-wrap gap-4 pt-1 text-xs font-mono">
+                                <div><span class="text-slate-400">Traffic Condition:</span> <strong id="banner-condition" class="text-emerald-400 ml-1">🟢 NORMAL</strong></div>
+                                <div><span class="text-slate-400">Signal Strategy:</span> <strong id="banner-strategy" class="text-neoncyan ml-1">Adaptive / Balanced</strong></div>
+                                <div><span class="text-slate-400">Network Status:</span> <strong class="text-white ml-1">6 Nodes Synchronized</strong></div>
+                            </div>
+                        </div>
+                        <div class="relative z-10 flex flex-wrap gap-3 justify-center">
+                            <button onclick="switchTab('map')" class="px-5 py-3 bg-gradient-to-r from-neoncyan to-blue-600 hover:from-neoncyan/90 hover:to-blue-500 text-slate-950 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center space-x-2 shadow-neon">
+                                <i data-lucide="map" class="w-4 h-4"></i>
+                                <span>Open Live Traffic Map</span>
+                            </button>
+                            <button onclick="switchTab('monitoring')" class="px-5 py-3 bg-slate-900/90 hover:bg-slate-800 text-white border border-glassborder hover:border-neoncyan/50 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center space-x-2">
+                                <i data-lucide="monitor" class="w-4 h-4 text-purple-400"></i>
+                                <span>Inspect 4-Way Junction</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 MAIN METRIC CARDS (Honest, Real-Time Simulation Metrics) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <!-- Metric 1: LIVE VEHICLES -->
+                        <div class="glass-panel glass-card-interactive p-5 rounded-3xl relative overflow-hidden group border-t-2 border-t-neoncyan">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">LIVE VEHICLES</p>
+                                <span class="w-7 h-7 rounded-xl bg-neoncyan/10 border border-neoncyan/20 flex items-center justify-center text-neoncyan">
+                                    <i data-lucide="car" class="w-3.5 h-3.5"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-baseline space-x-2 mt-3">
+                                <h3 id="metric-vehicles" class="text-3xl font-black text-white font-mono">112</h3>
+                                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Simulation</span>
+                            </div>
+                            <!-- Vehicle Category Breakdown -->
+                            <div class="grid grid-cols-4 gap-1 text-[10px] font-mono mt-3 pt-2 border-t border-glassborder text-center">
+                                <div><span class="text-slate-400 block">🚗 Cars</span><strong id="metric-cars" class="text-white">74</strong></div>
+                                <div><span class="text-slate-400 block">🏍️ Moto</span><strong id="metric-motos" class="text-purple-300">18</strong></div>
+                                <div><span class="text-slate-400 block">🚌 Bus</span><strong id="metric-buses" class="text-amber-300">10</strong></div>
+                                <div><span class="text-slate-400 block">🚚 Truck</span><strong id="metric-trucks" class="text-pink-300">10</strong></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Metric 2: TRAFFIC DENSITY -->
+                        <div class="glass-panel glass-card-interactive p-5 rounded-3xl relative overflow-hidden group border-t-2 border-t-amber-400">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">TRAFFIC DENSITY</p>
+                                <span class="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                    <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+                                </span>
+                            </div>
+                            <h3 id="metric-density-level" class="text-3xl font-black text-emerald-400 mt-3 font-mono">LOW</h3>
+                            <div class="flex items-center justify-between text-xs mt-3 text-slate-400 font-mono">
+                                <span>Density Level:</span>
+                                <span id="metric-density-threshold" class="text-white font-bold">0–5 (Low Density)</span>
+                            </div>
+                        </div>
+
+                        <!-- Metric 3: CONGESTED JUNCTIONS -->
+                        <div class="glass-panel glass-card-interactive p-5 rounded-3xl relative overflow-hidden group border-t-2 border-t-rose-500">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">CONGESTED JUNCTIONS</p>
+                                <span class="w-7 h-7 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                                </span>
+                            </div>
+                            <h3 id="metric-congested-count" class="text-3xl font-black text-white mt-3 font-mono">0 / 6</h3>
+                            <div class="flex items-center justify-between text-xs mt-3 text-slate-400 font-mono">
+                                <span>Congestion Status:</span>
+                                <span id="metric-congested-status" class="text-emerald-400 font-bold">Optimal Flow</span>
+                            </div>
+                        </div>
+
+                        <!-- Metric 4: ACTIVE SIGNALS -->
+                        <div class="glass-panel glass-card-interactive p-5 rounded-3xl relative overflow-hidden group border-t-2 border-t-neongreen">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">ACTIVE SIGNALS</p>
+                                <span class="w-7 h-7 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                    <i data-lucide="traffic-cone" class="w-3.5 h-3.5"></i>
+                                </span>
+                            </div>
+                            <h3 class="text-3xl font-black text-emerald-400 mt-3 font-mono">6</h3>
+                            <div class="flex items-center justify-between text-xs mt-3 text-slate-400 font-mono">
+                                <span>Control Mode:</span>
+                                <span class="text-neoncyan font-bold font-mono">Adaptive AI Rules</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CITY TRAFFIC NETWORK LIVE STRIP (6 Junctions Overview) -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                                <h3 class="text-base font-bold text-white font-mono uppercase tracking-wider flex items-center">
+                                    <i data-lucide="network" class="w-4 h-4 mr-2 text-neoncyan"></i> City Traffic Network - Live Node Status
+                                </h3>
+                            </div>
+                            <button onclick="switchTab('map')" class="text-xs text-neoncyan hover:underline font-mono flex items-center space-x-1">
+                                <span>View Full Interactive Map</span>
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- 6 Junction Nodes Grid -->
+                        <div id="overview-junctions-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- AI SIGNAL RECOMMENDATION CARD & ALERTS -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- 🧠 AI SIGNAL RECOMMENDATION CARD -->
+                        <div class="glass-panel p-6 rounded-3xl lg:col-span-2 flex flex-col justify-between shadow-glowcard border-l-4 border-l-neoncyan">
+                            <div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3.5 h-3.5 bg-neoncyan rounded-full animate-ping"></div>
+                                        <h3 class="text-lg font-bold text-white font-mono uppercase tracking-wide flex items-center">
+                                            <i data-lucide="sparkles" class="w-5 h-5 mr-2 text-neoncyan"></i> AI Signal Optimization Rationale
+                                        </h3>
+                                    </div>
+                                    <span class="bg-slate-900 border border-glassborder px-3 py-1 rounded-xl text-xs font-mono font-bold text-neoncyan">
+                                        ADAPTIVE TIMING LOGIC
+                                    </span>
+                                </div>
+
+                                <div class="bg-slate-950/70 p-5 rounded-2xl border border-glassborder space-y-3">
+                                    <p id="card-ai-recommendation" class="text-sm text-slate-200 leading-relaxed font-sans font-medium">
+                                        "North/South approach currently has the highest traffic density. The system recommends extending the green phase to 30 seconds."
+                                    </p>
+                                    <div class="flex flex-wrap gap-4 text-xs font-mono pt-2 border-t border-glassborder text-slate-400">
+                                        <div>Adaptive Matrix: <strong class="text-neoncyan">Low (15s) | Med (30s) | High (45s)</strong></div>
+                                        <div>Optimization Mode: <strong class="text-emerald-400">Dynamic Density Feedback</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 4-Way Quick Approach Telemetry for Junction 01 -->
+                            <div class="mt-6 pt-4 border-t border-glassborder">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase font-mono">Live Approach Status (Junction 01 - Downtown Cross)</h4>
+                                    <button onclick="inspectJunction('Junction A')" class="text-[11px] text-purple-400 hover:underline font-mono">Detailed View &rarr;</button>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-center">
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <span class="text-slate-400 block text-[10px]">NORTH APPROACH</span>
+                                        <strong id="quick-north-status" class="text-emerald-400 font-bold">12 veh (🟢 GREEN)</strong>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <span class="text-slate-400 block text-[10px]">SOUTH APPROACH</span>
+                                        <strong id="quick-south-status" class="text-emerald-400 font-bold">12 veh (🟢 GREEN)</strong>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <span class="text-slate-400 block text-[10px]">EAST APPROACH</span>
+                                        <strong id="quick-east-status" class="text-rose-400 font-bold">7 veh (🔴 RED)</strong>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <span class="text-slate-400 block text-[10px]">WEST APPROACH</span>
+                                        <strong id="quick-west-status" class="text-rose-400 font-bold">7 veh (🔴 RED)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-Time Alerts Feed -->
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-md font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="bell-ring" class="w-4 h-4 mr-2 text-rose-400 animate-pulse"></i> Live Simulation Alerts
+                                </h3>
+                                <span class="bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-lg text-[10px] font-bold text-rose-400 font-mono">SIMULATION FEED</span>
+                            </div>
+                            <div id="alerts-log" class="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[300px]">
+                                <div class="text-center text-xs text-slate-500 py-12 font-mono">
+                                    <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500/50 mx-auto mb-2"></i>
+                                    All junctions operating smoothly.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COMPARISON PANEL (Adaptive vs Pre-Timed Simulation) -->
+                    <div class="glass-panel p-6 rounded-3xl border-t-2 border-t-emerald-400">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="scale" class="w-5 h-5 mr-2 text-emerald-400"></i> Signal Timing Strategy Comparison
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Comparison of traditional fixed 30-second cycle timers against adaptive density-based optimization.</p>
+                            </div>
+                            <span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-mono font-bold self-start sm:self-auto">
+                                SIMULATION BENCHMARK
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-slate-950/60 p-5 rounded-2xl border border-glassborder">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-sm font-bold text-slate-400 font-mono">TRADITIONAL PRE-TIMED SIGNALS</h4>
+                                    <span class="text-[10px] font-mono text-slate-500">Static 30s</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mb-2 font-mono">Fixed green duration regardless of vehicle volume surges or queue buildups.</p>
+                                <div class="bg-slate-900/80 p-3 rounded-xl text-xs font-mono text-slate-300">
+                                    Queue Clearance: <strong class="text-amber-400">Unresponsive to surges</strong>
+                                </div>
+                            </div>
+
+                            <div class="bg-emerald-950/20 p-5 rounded-2xl border border-emerald-500/30">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-sm font-bold text-emerald-400 font-mono">AI ADAPTIVE SIGNAL OPTIMIZATION</h4>
+                                    <span class="text-[10px] font-mono text-emerald-400">Dynamic 15s / 30s / 45s</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mb-2 font-mono">Calculated dynamically based on vehicle counts, queue lengths, and density thresholds.</p>
+                                <div class="bg-emerald-950/40 p-3 rounded-xl text-xs font-mono text-emerald-300 border border-emerald-500/20">
+                                    Queue Clearance: <strong class="text-emerald-400">Prioritizes high-density approaches</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 2. LIVE TRAFFIC MAP PAGE ==================== -->
+                <section id="page-map" class="tab-page space-y-6 hidden">
+                    
+                    <!-- Top Map Controls & Scenario Bar -->
+                    <div class="glass-panel p-5 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <h3 class="text-lg font-bold text-white font-mono uppercase">
+                                    Live City Traffic Map
+                                </h3>
+                                <span class="text-xs bg-neoncyan/10 border border-neoncyan/30 text-neoncyan px-2 py-0.5 rounded font-mono font-bold">SIMULATED NETWORK</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1 font-mono">
+                                Interactive simulated city road network showing multi-intersection traffic densities, signal phases, and emergency corridors.
+                            </p>
+                        </div>
+
+                        <!-- Map View Toggle & Scenario Presets -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div class="bg-slate-950 p-1 rounded-xl border border-glassborder flex items-center space-x-1 text-xs font-mono font-bold">
+                                <button onclick="setMapViewMode('topology')" id="btn-view-topology" class="px-3 py-1.5 rounded-lg bg-slate-800 text-neoncyan">
+                                    <i data-lucide="git-merge" class="w-3.5 h-3.5 inline mr-1"></i> Road Network
+                                </button>
+                                <button onclick="setMapViewMode('gis')" id="btn-view-gis" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">
+                                    <i data-lucide="globe" class="w-3.5 h-3.5 inline mr-1"></i> GIS Map
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emergency / Incident Alert Banner for Map -->
+                    <div id="map-scenario-alert" class="hidden p-4 rounded-2xl border text-xs font-mono flex items-center justify-between shadow-glowcard">
+                        <!-- Populated dynamically when Emergency or Incident preset is active -->
+                    </div>
+
+                    <!-- MAP WORKSPACE AREA -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- MAP CANVAS CONTAINER (Col 1 & 2) -->
+                        <div class="lg:col-span-2 glass-panel p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden min-h-[520px]">
+                            
+                            <!-- 1. TOPOLOGY ROAD NETWORK VIEW -->
+                            <div id="map-topology-view" class="w-full flex-1 flex flex-col justify-between relative bg-slate-950/90 rounded-2xl border border-glassborder p-6 overflow-hidden">
+                                
+                                <!-- Background road network grid decor -->
+                                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#00f0ff_1.5px,transparent_1.5px)] [background-size:24px_24px]"></div>
+                                
+                                <!-- Decorative Connected Highway Lines -->
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                                    <!-- East-West Arterial: J2 -> J1 -> J3 -->
+                                    <line x1="20%" y1="28%" x2="50%" y2="28%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+                                    <line x1="50%" y1="28%" x2="80%" y2="28%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+
+                                    <!-- North-South Spine: J1 -> J4 -> J5 -->
+                                    <line x1="50%" y1="28%" x2="50%" y2="65%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+                                    <line x1="50%" y1="65%" x2="25%" y2="88%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+
+                                    <!-- Southeast Connector: J4 -> J6 and J5 -> J6 -->
+                                    <line x1="50%" y1="65%" x2="75%" y2="88%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+                                    <line x1="25%" y1="88%" x2="75%" y2="88%" stroke="rgba(255,255,255,0.15)" stroke-width="4" stroke-dasharray="6 4" />
+
+                                    <!-- Dynamic Emergency Route Highlight Line -->
+                                    <g id="svg-emergency-route" class="hidden">
+                                        <line x1="20%" y1="28%" x2="50%" y2="28%" stroke="#00ff87" stroke-width="6" stroke-dasharray="8 4" class="animate-pulse" />
+                                        <line x1="50%" y1="28%" x2="50%" y2="65%" stroke="#00ff87" stroke-width="6" stroke-dasharray="8 4" class="animate-pulse" />
+                                    </g>
+                                </svg>
+
+                                <!-- Junction Nodes Positions Layout -->
+                                <!-- Row 1: J2 (Subway Plaza), J1 (Downtown Cross), J3 (Financial District) -->
+                                <div class="grid grid-cols-3 gap-4 z-10">
+                                    <!-- J2 -->
+                                    <div onclick="selectMapJunction('Junction B')" id="map-node-Junction B" class="cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border border-glassborder hover:border-neoncyan transition shadow-lg space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-emerald-400 node-status-dot"></span> J02 (Subway Plaza)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">LOW</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">22</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 EW (25s)</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- J1 (Center North) -->
+                                    <div onclick="selectMapJunction('Junction A')" id="map-node-Junction A" class="cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border-2 border-neoncyan transition shadow-neon space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-amber-400 node-status-dot"></span> J01 (Downtown Cross)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">MED</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">38</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 NS (30s)</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- J3 -->
+                                    <div onclick="selectMapJunction('Junction C')" id="map-node-Junction C" class="cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border border-glassborder hover:border-neoncyan transition shadow-lg space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-amber-400 node-status-dot"></span> J03 (Financial Dist)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">MED</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">43</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 NS (30s)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 2: Center Hub - J4 (Industrial Arterial) -->
+                                <div class="flex justify-center my-6 z-10">
+                                    <div onclick="selectMapJunction('Junction D')" id="map-node-Junction D" class="w-72 cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border border-glassborder hover:border-neoncyan transition shadow-lg space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-emerald-400 node-status-dot"></span> J04 (Industrial Arterial)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">LOW</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">18</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 EW (15s)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 3: J5 (Residential Boulevard), J6 (Highway Gateway) -->
+                                <div class="grid grid-cols-2 gap-8 z-10 px-6">
+                                    <!-- J5 -->
+                                    <div onclick="selectMapJunction('Junction E')" id="map-node-Junction E" class="cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border border-glassborder hover:border-neoncyan transition shadow-lg space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-emerald-400 node-status-dot"></span> J05 (Residential Blvd)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">LOW</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">11</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 NS (18s)</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- J6 -->
+                                    <div onclick="selectMapJunction('Junction F')" id="map-node-Junction F" class="cursor-pointer bg-slate-900/90 hover:bg-slate-800 p-3.5 rounded-2xl border border-glassborder hover:border-neoncyan transition shadow-lg space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] font-bold font-mono text-white flex items-center">
+                                                <span class="w-2.5 h-2.5 rounded-full mr-1.5 bg-emerald-400 node-status-dot"></span> J06 (Highway Gateway)
+                                            </span>
+                                            <span class="node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">LOW</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-300 flex justify-between">
+                                            <span>Vehicles: <strong class="node-veh-count text-white">38</strong></span>
+                                            <span class="node-sig-badge text-emerald-400 font-bold">🟢 EW (20s)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. GEOGRAPHIC GIS LEAFLET MAP VIEW -->
+                            <div id="map-gis-view" class="hidden w-full h-[460px] rounded-2xl overflow-hidden border border-glassborder">
+                                <div id="leaflet-map-canvas" class="w-full h-full"></div>
+                            </div>
+
+                            <!-- Network Legend on Map Footer -->
+                            <div class="mt-4 pt-3 border-t border-glassborder flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 gap-2">
+                                <div class="flex items-center space-x-4">
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-1.5"></span> 🟢 Low Density</span>
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5"></span> 🟡 Moderate</span>
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span> 🔴 High Congestion</span>
+                                </div>
+                                <div>Click any junction to inspect its live signal timing</div>
+                            </div>
+                        </div>
+
+                        <!-- MAP SELECTED JUNCTION DETAIL DRAWER (Col 3) -->
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between space-y-6">
+                            <div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-sm font-bold text-white font-mono uppercase flex items-center">
+                                        <i data-lucide="crosshair" class="w-4 h-4 mr-2 text-neoncyan"></i> Node Telemetry
+                                    </h4>
+                                    <span id="map-drawer-junction-code" class="px-2.5 py-0.5 rounded-lg bg-neoncyan/10 border border-neoncyan/30 text-neoncyan font-mono font-bold text-xs">
+                                        J01
+                                    </span>
+                                </div>
+
+                                <div class="space-y-4 font-mono text-xs">
+                                    <div class="bg-slate-950/70 p-4 rounded-2xl border border-glassborder space-y-2">
+                                        <div class="text-slate-400 text-[10px] uppercase font-bold">Junction Name</div>
+                                        <div id="map-drawer-name" class="text-white font-bold text-sm">Junction 01 (Downtown Cross)</div>
+                                        <div class="flex justify-between pt-1 border-t border-glassborder text-slate-400">
+                                            <span>Congestion Status:</span>
+                                            <strong id="map-drawer-congestion" class="text-emerald-400 font-bold">Low</strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- North-South Corridor status -->
+                                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-glassborder space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-300 font-bold">NORTH - SOUTH</span>
+                                            <span id="map-drawer-ns-sig" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">🟢 GREEN (30s)</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-slate-400">
+                                            <div>Vehicles: <strong id="map-drawer-ns-veh" class="text-white font-bold">24</strong></div>
+                                            <div>Density: <strong id="map-drawer-ns-den" class="text-white font-bold">40%</strong></div>
+                                            <div>Queue: <strong id="map-drawer-ns-q" class="text-white font-bold">6</strong></div>
+                                            <div>Wait: <strong id="map-drawer-ns-w" class="text-white font-bold">14.5s</strong></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- East-West Corridor status -->
+                                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-glassborder space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-300 font-bold">EAST - WEST</span>
+                                            <span id="map-drawer-ew-sig" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400">🔴 RED (30s)</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-slate-400">
+                                            <div>Vehicles: <strong id="map-drawer-ew-veh" class="text-white font-bold">14</strong></div>
+                                            <div>Density: <strong id="map-drawer-ew-den" class="text-white font-bold">25%</strong></div>
+                                            <div>Queue: <strong id="map-drawer-ew-q" class="text-white font-bold">3</strong></div>
+                                            <div>Wait: <strong id="map-drawer-ew-w" class="text-white font-bold">8.0s</strong></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action button to open 4-Way visualizer -->
+                            <div class="space-y-3">
+                                <button onclick="open4WayVisualizerForSelected()" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-2xl text-xs font-mono transition flex items-center justify-center space-x-2 shadow-neon">
+                                    <i data-lucide="monitor" class="w-4 h-4"></i>
+                                    <span>Inspect in 4-Way Visualizer</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 3. 4-WAY JUNCTION MONITORING PAGE ==================== -->
+                <section id="page-monitoring" class="tab-page space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- 4-WAY INTERSECTION VISUALIZER CARD -->
+                        <div class="glass-panel p-6 rounded-3xl lg:col-span-2 flex flex-col justify-between">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <h3 class="text-base font-bold text-white font-mono uppercase">
+                                        4-Way Real-Time Intersection Flow
+                                    </h3>
+                                    <span id="visualizer-junction-badge" class="bg-neoncyan/10 border border-neoncyan/30 px-2.5 py-0.5 rounded-lg text-xs font-bold text-neoncyan font-mono">
+                                        JUNCTION 01
+                                    </span>
+                                </div>
+                                <select id="visualizer-selector" onchange="changeVisualizerJunction()" class="bg-slate-950/90 border border-glassborder rounded-xl text-xs font-bold px-3 py-2 text-white focus:outline-none focus:border-neoncyan font-mono">
+                                    <option value="Junction A">Junction 01 (Downtown Cross)</option>
+                                    <option value="Junction B">Junction 02 (Subway Plaza)</option>
+                                    <option value="Junction C">Junction 03 (Financial District)</option>
+                                    <option value="Junction D">Junction 04 (Industrial Arterial)</option>
+                                    <option value="Junction E">Junction 05 (Residential Boulevard)</option>
+                                    <option value="Junction F">Junction 06 (Highway Gateway)</option>
+                                </select>
+                            </div>
+
+                            <!-- INTERSECTION ROAD CANVAS / VISUAL GRAPHIC -->
+                            <div class="flex-1 flex items-center justify-center p-6 bg-slate-950/80 rounded-2xl border border-glassborder/60 min-h-[380px] relative overflow-hidden">
+                                
+                                <!-- Decorative Grid Background -->
+                                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#00f0ff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+                                <!-- INTERSECTION BOX -->
+                                <div class="relative w-80 h-80 bg-slate-900 rounded-3xl overflow-hidden border-2 border-slate-700/80 shadow-2xl">
+                                    
+                                    <!-- Horizontal Road (East-West) -->
+                                    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-slate-800 border-y-2 border-slate-600 flex flex-col justify-between py-1">
+                                        <div class="w-full border-t border-dashed border-slate-500/40"></div>
+                                        <div class="w-full border-t-2 border-dashed border-amber-400/70"></div>
+                                        <div class="w-full border-t border-dashed border-slate-500/40"></div>
+                                    </div>
+                                    <!-- Vertical Road (North-South) -->
+                                    <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-24 bg-slate-800 border-x-2 border-slate-600 flex justify-between px-1">
+                                        <div class="h-full border-l border-dashed border-slate-500/40"></div>
+                                        <div class="h-full border-l-2 border-dashed border-amber-400/70"></div>
+                                        <div class="h-full border-l border-dashed border-slate-500/40"></div>
+                                    </div>
+
+                                    <!-- Pedestrian Zebra Crossings -->
+                                    <div class="absolute top-12 left-1/2 -translate-x-1/2 w-24 h-4 border-y border-dashed border-white/60"></div>
+                                    <div class="absolute bottom-12 left-1/2 -translate-x-1/2 w-24 h-4 border-y border-dashed border-white/60"></div>
+                                    <div class="absolute left-12 top-1/2 -translate-y-1/2 w-4 h-24 border-x border-dashed border-white/60"></div>
+                                    <div class="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-24 border-x border-dashed border-white/60"></div>
+
+                                    <!-- Glowing LED Traffic Light Heads -->
+                                    <!-- North Arm Light -->
+                                    <div class="absolute top-16 left-1/2 -translate-x-1/2 -mt-1 flex space-x-1 bg-black/90 p-1 rounded-lg border border-slate-600 text-[10px] shadow-lg">
+                                        <span id="light-north-red" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-north-yellow" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-north-green" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                    </div>
+                                    <!-- South Arm Light -->
+                                    <div class="absolute bottom-16 left-1/2 -translate-x-1/2 -mb-1 flex space-x-1 bg-black/90 p-1 rounded-lg border border-slate-600 text-[10px] shadow-lg">
+                                        <span id="light-south-red" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-south-yellow" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-south-green" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                    </div>
+                                    <!-- West Arm Light -->
+                                    <div class="absolute left-16 top-1/2 -translate-y-1/2 -ml-1 flex flex-col space-y-1 bg-black/90 p-1 rounded-lg border border-slate-600 text-[10px] shadow-lg">
+                                        <span id="light-west-red" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-west-yellow" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-west-green" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                    </div>
+                                    <!-- East Arm Light -->
+                                    <div class="absolute right-16 top-1/2 -translate-y-1/2 -mr-1 flex flex-col space-y-1 bg-black/90 p-1 rounded-lg border border-slate-600 text-[10px] shadow-lg">
+                                        <span id="light-east-red" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-east-yellow" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                        <span id="light-east-green" class="w-3 h-3 rounded-full bg-slate-800"></span>
+                                    </div>
+
+                                    <!-- Countdown Timer Overlays -->
+                                    <div id="vis-ns-timer-box" class="absolute top-2 left-2 bg-slate-950/90 border border-slate-700 px-2.5 py-1 rounded-xl font-mono text-[11px] font-bold text-center">
+                                        N-S: <span id="vis-ns-timer" class="text-white">--</span>
+                                    </div>
+                                    <div id="vis-ew-timer-box" class="absolute bottom-2 right-2 bg-slate-950/90 border border-slate-700 px-2.5 py-1 rounded-xl font-mono text-[11px] font-bold text-center">
+                                        E-W: <span id="vis-ew-timer" class="text-white">--</span>
+                                    </div>
+
+                                    <!-- Animated Moving Vehicle Dots -->
+                                    <div id="anim-ns-cars" class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-8 hidden flex-col justify-around py-2 pointer-events-none">
+                                        <div class="w-4 h-2.5 bg-neoncyan rounded-sm anim-car-ns-1 shadow-neon"></div>
+                                        <div class="w-4 h-2.5 bg-sky-300 rounded-sm anim-car-ns-2 shadow-neon"></div>
+                                    </div>
+                                    <div id="anim-ew-cars" class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-8 hidden items-center justify-around px-2 pointer-events-none">
+                                        <div class="w-2.5 h-4 bg-neoncyan rounded-sm anim-car-ew-1 shadow-neon"></div>
+                                        <div class="w-2.5 h-4 bg-sky-300 rounded-sm anim-car-ew-2 shadow-neon"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DIRECTION METRICS & LANES PANEL -->
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between space-y-6">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-300 font-mono uppercase mb-4 flex items-center">
+                                    <i data-lucide="git-branch" class="w-4 h-4 mr-2 text-neoncyan"></i> Approach Telemetry
+                                </h4>
+                                
+                                <div class="space-y-4">
+                                    <!-- North-South Lane -->
+                                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-glassborder">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <span class="text-xs font-bold text-white font-mono">NORTH - SOUTH CORRIDOR</span>
+                                            <span id="vis-ns-signal-badge" class="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase">GREEN</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-xs font-mono text-slate-400">
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Vehicles: <span id="vis-ns-count" class="text-white font-bold">--</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Density: <span id="vis-ns-density" class="text-white font-bold">--%</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Queue: <span id="vis-ns-queue" class="text-white font-bold">--</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Wait: <span id="vis-ns-wait" class="text-white font-bold">--s</span></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- East-West Lane -->
+                                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-glassborder">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <span class="text-xs font-bold text-white font-mono">EAST - WEST CORRIDOR</span>
+                                            <span id="vis-ew-signal-badge" class="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase">RED</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-xs font-mono text-slate-400">
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Vehicles: <span id="vis-ew-count" class="text-white font-bold">--</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Density: <span id="vis-ew-density" class="text-white font-bold">--%</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Queue: <span id="vis-ew-queue" class="text-white font-bold">--</span></div>
+                                            <div class="bg-slate-950/60 p-2 rounded-lg">Wait: <span id="vis-ew-wait" class="text-white font-bold">--s</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Real-time AI Reasoning Toast -->
+                            <div class="bg-slate-950/90 p-4 rounded-2xl border border-neoncyan/30 flex items-start space-x-3 shadow-neon">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-neoncyan mt-0.5 shrink-0 animate-pulse"></i>
+                                <div>
+                                    <h5 class="text-xs font-bold text-white font-mono uppercase">AI Adaptive Decision</h5>
+                                    <p id="vis-ai-toast-desc" class="text-[11px] text-slate-300 mt-1 leading-snug">
+                                        Signal duration computed according to measured approach density.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 4. AI SIGNAL OPTIMIZATION RULES PAGE ==================== -->
+                <section id="page-optimization" class="tab-page space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- MODEL THRESHOLDS & RULE ENGINE -->
+                        <div class="glass-panel p-6 rounded-3xl lg:col-span-2 space-y-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="sparkles" class="w-5 h-5 mr-2 text-neoncyan"></i> Adaptive Signal Optimization Rules
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Prototype rule-based adaptive logic mapping traffic density to optimal green phase durations.</p>
+                            </div>
+                            
+                            <!-- Threshold Cards -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+                                <div class="bg-slate-950/70 p-4 rounded-2xl border border-emerald-500/30 text-center space-y-2">
+                                    <span class="text-emerald-400 font-bold uppercase text-[11px] block">🟢 LOW DENSITY</span>
+                                    <div class="text-2xl font-black text-white">0 – 5</div>
+                                    <p class="text-[10px] text-slate-400">vehicles per approach</p>
+                                    <div class="bg-emerald-950/40 p-2 rounded-xl text-emerald-300 font-bold border border-emerald-500/20">
+                                        Recommended Green: 15s
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-950/70 p-4 rounded-2xl border border-amber-500/30 text-center space-y-2">
+                                    <span class="text-amber-400 font-bold uppercase text-[11px] block">🟡 MEDIUM DENSITY</span>
+                                    <div class="text-2xl font-black text-white">6 – 15</div>
+                                    <p class="text-[10px] text-slate-400">vehicles per approach</p>
+                                    <div class="bg-amber-950/40 p-2 rounded-xl text-amber-300 font-bold border border-amber-500/20">
+                                        Recommended Green: 30s
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-950/70 p-4 rounded-2xl border border-rose-500/30 text-center space-y-2">
+                                    <span class="text-rose-400 font-bold uppercase text-[11px] block">🔴 HIGH DENSITY</span>
+                                    <div class="text-2xl font-black text-white">&gt; 15</div>
+                                    <p class="text-[10px] text-slate-400">vehicles per approach</p>
+                                    <div class="bg-rose-950/40 p-2 rounded-xl text-rose-300 font-bold border border-rose-500/20">
+                                        Recommended Green: 45s
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Network Optimization Table -->
+                            <div class="bg-slate-950/70 p-5 rounded-2xl border border-glassborder space-y-4">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center justify-between">
+                                    <span>Live Network Optimization Decisions</span>
+                                    <span class="text-[10px] text-neoncyan font-bold">6 Intersections Active</span>
+                                </h4>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs font-mono">
+                                        <thead>
+                                            <tr class="border-b border-glassborder text-slate-400 text-[10px] uppercase">
+                                                <th class="py-2.5 px-3">Node</th>
+                                                <th class="py-2.5 px-3">Active Corridor</th>
+                                                <th class="py-2.5 px-3">Vehicles</th>
+                                                <th class="py-2.5 px-3">Density Level</th>
+                                                <th class="py-2.5 px-3">Pre-Timed</th>
+                                                <th class="py-2.5 px-3 text-neoncyan">AI Recommended</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="optimization-table-body" class="divide-y divide-glassborder text-slate-300">
+                                            <!-- Dynamically populated -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pipeline Architecture Info -->
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between space-y-6">
+                            <div>
+                                <h3 class="text-base font-bold text-white font-mono uppercase flex items-center mb-4">
+                                    <i data-lucide="check-circle" class="w-4 h-4 mr-2 text-emerald-400"></i> Prototype Architecture
+                                </h3>
+                                
+                                <div class="space-y-3 font-mono text-xs text-slate-300">
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <strong class="text-neoncyan block mb-1">1. Live Traffic Network:</strong>
+                                        Continuous vehicle flow & queue simulation across 6 intersections.
+                                    </div>
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <strong class="text-purple-300 block mb-1">2. Density Analysis:</strong>
+                                        Grouped into Low (0-5), Medium (6-15), High (>15) categories.
+                                    </div>
+                                    <div class="bg-slate-900/80 p-3 rounded-xl border border-glassborder">
+                                        <strong class="text-emerald-400 block mb-1">3. Signal Recommendation:</strong>
+                                        Allocates optimal 15s / 30s / 45s green phase duration dynamically.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950/80 p-4 rounded-2xl border border-glassborder text-[11px] font-mono text-slate-400 space-y-1.5">
+                                <div>• B.Tech Capstone Prototype Simulation.</div>
+                                <div>• Live traffic data simulated for control-room operations.</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 5. WHAT-IF SCENARIO SIMULATION SANDBOX ==================== -->
+                <section id="page-sandbox" class="tab-page space-y-6 hidden">
+                    
+                    <!-- Presets Selector Strip -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-4">
+                        <h3 class="text-lg font-bold text-white font-mono uppercase flex items-center">
+                            <i data-lucide="sliders" class="w-5 h-5 mr-2 text-rose-400"></i> Scenario Presets Control
+                        </h3>
+                        <p class="text-xs text-slate-400">Select any scenario preset to test control-room responses across the network.</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                            <!-- Balanced -->
+                            <div onclick="applyScenarioPreset('balanced')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800 p-4 rounded-2xl border border-emerald-500/30 transition space-y-2">
+                                <div class="text-xs font-bold text-emerald-400 font-mono flex items-center">
+                                    <i data-lucide="check-circle" class="w-4 h-4 mr-1.5"></i> 🟢 Balanced Preset
+                                </div>
+                                <p class="text-[11px] text-slate-300 font-mono">Restores normal traffic volume & adaptive signal cycles across all 6 junctions.</p>
+                            </div>
+
+                            <!-- Rush Hour -->
+                            <div onclick="applyScenarioPreset('rush')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800 p-4 rounded-2xl border border-amber-500/30 transition space-y-2">
+                                <div class="text-xs font-bold text-amber-400 font-mono flex items-center">
+                                    <i data-lucide="car" class="w-4 h-4 mr-1.5"></i> 🚗 Rush Hour Preset
+                                </div>
+                                <p class="text-[11px] text-slate-300 font-mono">Simulates network-wide peak traffic surge; signals adapt with extended 45s green times.</p>
+                            </div>
+
+                            <!-- Emergency -->
+                            <div onclick="applyScenarioPreset('emergency')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800 p-4 rounded-2xl border border-red-500/40 transition space-y-2">
+                                <div class="text-xs font-bold text-red-400 font-mono flex items-center">
+                                    <i data-lucide="ambulance" class="w-4 h-4 mr-1.5"></i> 🚨 Emergency (Sim)
+                                </div>
+                                <p class="text-[11px] text-slate-300 font-mono">Simulates emergency priority corridor (J02 &rarr; J01 &rarr; J04) with green-wave signal lock.</p>
+                            </div>
+
+                            <!-- Incident -->
+                            <div onclick="applyScenarioPreset('incident')" class="cursor-pointer bg-slate-900/80 hover:bg-slate-800 p-4 rounded-2xl border border-rose-500/40 transition space-y-2">
+                                <div class="text-xs font-bold text-rose-400 font-mono flex items-center">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-1.5"></i> ⚠️ Incident (Sim)
+                                </div>
+                                <p class="text-[11px] text-slate-300 font-mono">Simulates road blockage at Junction 01; system applies adaptive signal compensation.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What-If Arrival Rate Sliders -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="sliders-horizontal" class="w-5 h-5 mr-2 text-neoncyan"></i> What-If Traffic Density Simulator
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Adjust vehicle arrival sliders to test how the adaptive optimization logic responds to varying traffic densities.</p>
+                            </div>
+                            <button onclick="resetSandboxSliders()" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-mono font-bold text-slate-300 border border-glassborder transition">
+                                Reset Sliders
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <!-- Sliders Control Panel -->
+                            <div class="bg-slate-950/70 p-6 rounded-2xl border border-glassborder space-y-5 font-mono">
+                                <!-- Slider 1: North-South Vehicles -->
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-xs">
+                                        <span class="text-slate-300 font-bold">North-South Approach Vehicles:</span>
+                                        <span id="sb-val-ns" class="text-neoncyan font-bold">18 vehicles</span>
+                                    </div>
+                                    <input type="range" id="sb-slider-ns" min="1" max="40" value="18" oninput="updateSandboxSim()" class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer">
+                                    <div class="flex justify-between text-[10px] text-slate-500">
+                                        <span>0-5 (Low: 15s)</span>
+                                        <span>6-15 (Med: 30s)</span>
+                                        <span>&gt;15 (High: 45s)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Slider 2: East-West Vehicles -->
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-xs">
+                                        <span class="text-slate-300 font-bold">East-West Approach Vehicles:</span>
+                                        <span id="sb-val-ew" class="text-neoncyan font-bold">8 vehicles</span>
+                                    </div>
+                                    <input type="range" id="sb-slider-ew" min="1" max="40" value="8" oninput="updateSandboxSim()" class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer">
+                                    <div class="flex justify-between text-[10px] text-slate-500">
+                                        <span>0-5 (Low: 15s)</span>
+                                        <span>6-15 (Med: 30s)</span>
+                                        <span>&gt;15 (High: 45s)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live AI Model Response Display -->
+                            <div class="bg-gradient-to-br from-slate-900/90 to-blue-950/40 p-6 rounded-2xl border border-neoncyan/40 shadow-neon flex flex-col justify-between space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono font-bold text-neoncyan uppercase tracking-wider">AI RECOMMENDATION PREVIEW</span>
+                                    <span class="px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">SIMULATION</span>
+                                </div>
+
+                                <div class="text-center py-4 space-y-2">
+                                    <div class="text-5xl font-black font-mono text-white tracking-wider flex items-center justify-center">
+                                        <span id="sb-result-green" class="text-transparent bg-clip-text bg-gradient-to-r from-neoncyan to-neongreen">45</span>
+                                        <span class="text-xl text-slate-400 ml-2 font-medium">sec green</span>
+                                    </div>
+                                    <p id="sb-result-priority" class="text-xs font-mono font-bold text-emerald-400">Prioritizes North-South Approach (High Density)</p>
+                                </div>
+
+                                <div class="bg-slate-950/80 p-4 rounded-xl border border-glassborder text-xs text-slate-300 leading-relaxed font-mono">
+                                    <span class="text-neoncyan font-bold">Decision Rationale:</span>
+                                    <p id="sb-result-explanation" class="mt-1">
+                                        North-South approach has 18 vehicles (>15 threshold), recommending extended 45-second green time.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 6. ANALYTICS CENTER PAGE ==================== -->
+                <section id="page-analytics" class="tab-page space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- Daily Volume (Simulation) -->
+                        <div class="glass-panel p-6 rounded-3xl space-y-4">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-sm font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="bar-chart" class="w-4 h-4 mr-2 text-neongreen"></i> Daily Traffic Volume (Simulated History)
+                                </h4>
+                                <span class="text-[10px] font-mono text-slate-400">Simulated Flow</span>
+                            </div>
+                            <div class="h-64 relative">
+                                <canvas id="chartDailyVolume" class="w-full h-full"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Waiting Time comparison per junction -->
+                        <div class="glass-panel p-6 rounded-3xl space-y-4">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-sm font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="clock" class="w-4 h-4 mr-2 text-neoncyan"></i> Average Waiting Delay by Node (Simulation)
+                                </h4>
+                                <span class="text-[10px] font-mono text-slate-400">Simulated Delay</span>
+                            </div>
+                            <div class="h-64 relative">
+                                <canvas id="chartWaitTime" class="w-full h-full"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Congestion distribution chart -->
+                        <div class="glass-panel p-6 rounded-3xl space-y-4">
+                            <h4 class="text-sm font-bold text-white font-mono uppercase flex items-center">
+                                <i data-lucide="pie-chart" class="w-4 h-4 mr-2 text-neonpink"></i> Network Congestion Distribution
+                            </h4>
+                            <div class="h-64 relative flex flex-col sm:flex-row items-center justify-center gap-6">
+                                <div class="w-40 h-40">
+                                    <canvas id="chartCongestionDist"></canvas>
+                                </div>
+                                <div id="congestion-legend" class="text-xs space-y-2.5 font-mono"></div>
+                            </div>
+                        </div>
+
+                        <!-- Adaptive Optimization Summary -->
+                        <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between border-t-2 border-t-neongreen space-y-6 shadow-glowcard">
+                            <div>
+                                <h4 class="text-sm font-bold text-white font-mono uppercase mb-4 flex items-center">
+                                    <i data-lucide="award" class="w-4 h-4 mr-2 text-neongreen"></i> Adaptive Signal Prototype Summary
+                                </h4>
+                                <div class="space-y-4 font-mono text-xs text-slate-300">
+                                    <div class="flex justify-between border-b border-glassborder pb-2.5">
+                                        <span class="text-slate-400">Traffic Simulation Framework:</span>
+                                        <span class="text-neoncyan font-bold">FastAPI + Async Tick Engine</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-glassborder pb-2.5">
+                                        <span class="text-slate-400">Network Intersections:</span>
+                                        <span class="text-white font-bold">6 Synchronized Nodes</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-glassborder pb-2.5">
+                                        <span class="text-slate-400">Signal Timing Strategy:</span>
+                                        <span class="text-emerald-400 font-bold">15s / 30s / 45s Dynamic Allocation</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-start space-x-2 text-xs text-emerald-300">
+                                <i data-lucide="info" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                                <span>Prototype simulation designed for operator control-room demonstration.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 7. SYSTEM CONTROLS & OPTIONAL YOLO VISION DEMO ==================== -->
+                <section id="page-controls" class="tab-page space-y-6 hidden">
+                    
+                    <!-- Simulation Engine Master Controls -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white font-mono uppercase flex items-center">
+                                    <i data-lucide="sliders" class="w-5 h-5 mr-2 text-neoncyan"></i> Simulation Engine Controls
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Control simulation execution state, rate multiplier, and network resets.</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="controlSim('pause')" class="px-4 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold transition flex items-center space-x-1.5">
+                                    <i data-lucide="pause" class="w-3.5 h-3.5"></i>
+                                    <span>Pause</span>
+                                </button>
+                                <button onclick="controlSim('resume')" class="px-4 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold transition flex items-center space-x-1.5">
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                    <span>Resume</span>
+                                </button>
+                                <button onclick="controlSim('reset')" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-glassborder text-slate-300 font-mono text-xs font-bold transition flex items-center space-x-1.5">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                    <span>Reset Network</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+                            <div class="bg-slate-950/80 p-4 rounded-2xl border border-glassborder">
+                                <span class="text-slate-400 block text-[10px]">SIMULATION SPEED</span>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <button onclick="setSimSpeed(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-neoncyan font-bold">1x Speed</button>
+                                    <button onclick="setSimSpeed(2)" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300">2x Speed</button>
+                                    <button onclick="setSimSpeed(4)" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300">4x Speed</button>
+                                </div>
+                            </div>
+                            <div class="bg-slate-950/80 p-4 rounded-2xl border border-glassborder">
+                                <span class="text-slate-400 block text-[10px]">CURRENT SIMULATION PRESET</span>
+                                <div id="ctrl-current-preset" class="text-base font-bold text-emerald-400 mt-2">🟢 Balanced Mode</div>
+                            </div>
+                            <div class="bg-slate-950/80 p-4 rounded-2xl border border-glassborder">
+                                <span class="text-slate-400 block text-[10px]">WEBSOCKET STATUS</span>
+                                <div id="ctrl-ws-status" class="text-base font-bold text-white mt-2">Connecting...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OPTIONAL YOLO VEHICLE DETECTION MODULE (Separated & Clearly Optional) -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-6 border border-purple-500/20">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">OPTIONAL MODULE</span>
+                                    <h3 class="text-base font-bold text-white font-mono uppercase">
+                                        Traffic Camera Video Analysis (YOLOv8 Demo)
+                                    </h3>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 font-mono">
+                                    Optional Computer Vision testing tool: Upload traffic footage or run demo video through YOLOv8 to test camera-based vehicle counts.
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="runSampleVideoAnalysis()" id="btn-run-sample-video" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition flex items-center space-x-1.5 shadow-neon">
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                    <span>▶️ Run Demo Video (YOLO)</span>
+                                </button>
+                                <label class="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-glassborder hover:border-purple-400/40 text-slate-200 font-bold rounded-xl text-xs cursor-pointer transition flex items-center space-x-1.5">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5 text-purple-400"></i>
+                                    <span>Upload Traffic Video</span>
+                                    <input type="file" id="video-file-input" accept="video/*" onchange="uploadAndAnalyzeVideo(event)" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Video Preview + Detection Telemetry -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Video Screen / Snapshot Canvas -->
+                            <div class="lg:col-span-2 bg-slate-950/80 p-4 rounded-2xl border border-glassborder flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden">
+                                <div id="video-placeholder" class="text-center p-8 space-y-3">
+                                    <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-purple-500/30 flex items-center justify-center mx-auto text-purple-400 shadow-neon">
+                                        <i data-lucide="camera" class="w-7 h-7"></i>
+                                    </div>
+                                    <h4 class="text-sm font-bold text-white font-mono">Camera Video Analysis Ready</h4>
+                                    <p class="text-xs text-slate-400 max-w-md">Click "Run Demo Video" or upload footage to run the YOLO vehicle detection model.</p>
+                                </div>
+                                <div id="video-loading" class="hidden text-center p-12 space-y-3">
+                                    <div class="w-10 h-10 rounded-full border-2 border-t-purple-400 border-r-transparent border-b-neoncyan border-l-transparent animate-spin mx-auto"></div>
+                                    <p class="text-xs font-mono text-purple-300 font-bold">Running YOLOv8 Vehicle Detection on Frames...</p>
+                                </div>
+                                <img id="video-snapshot-display" class="hidden w-full max-h-[360px] object-contain rounded-xl border border-purple-500/30 shadow-neon" alt="YOLO Annotated Video Frame">
+                            </div>
+
+                            <!-- Detection Telemetry & Signal Recommendation -->
+                            <div class="bg-slate-950/70 p-5 rounded-2xl border border-glassborder flex flex-col justify-between space-y-4 font-mono text-xs">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center">
+                                        <i data-lucide="bar-chart" class="w-4 h-4 mr-1.5 text-purple-400"></i> Detected Breakdown
+                                    </h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-glassborder">
+                                            <span class="text-slate-400">🚗 Cars:</span>
+                                            <strong id="yolo-cars-count" class="text-white">--</strong>
+                                        </div>
+                                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-glassborder">
+                                            <span class="text-slate-400">🏍️ Motorcycles:</span>
+                                            <strong id="yolo-motos-count" class="text-purple-300">--</strong>
+                                        </div>
+                                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-glassborder">
+                                            <span class="text-slate-400">🚌 Buses:</span>
+                                            <strong id="yolo-buses-count" class="text-amber-300">--</strong>
+                                        </div>
+                                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-glassborder">
+                                            <span class="text-slate-400">🚚 Trucks:</span>
+                                            <strong id="yolo-trucks-count" class="text-pink-300">--</strong>
+                                        </div>
+                                        <div class="flex justify-between items-center bg-purple-500/10 p-2.5 rounded-xl border border-purple-500/30">
+                                            <span class="text-slate-200 font-bold">TOTAL VEHICLES:</span>
+                                            <strong id="yolo-total-count" class="text-purple-300 font-black text-sm">--</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onclick="applyYoloToSimulation()" id="btn-apply-yolo" class="w-full py-2.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-xl font-bold transition text-xs flex items-center justify-center space-x-1.5" disabled>
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    <span>Apply Counts to Junction 01</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- FLOATING BOTTOM QUICK ACCESS BAR -->
+        <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 backdrop-blur-xl border border-glassborder px-4 py-2 rounded-2xl shadow-2xl flex items-center space-x-3 text-xs font-mono">
+            <span class="text-slate-400 font-bold hidden sm:inline">QUICK NAV:</span>
+            <button onclick="switchTab('overview')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-neoncyan/20 text-slate-200 hover:text-neoncyan transition flex items-center space-x-1">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                <span>Overview</span>
+            </button>
+            <button onclick="switchTab('map')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-neoncyan/20 text-slate-200 hover:text-neoncyan transition flex items-center space-x-1">
+                <i data-lucide="map" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Live Map</span>
+            </button>
+            <button onclick="switchTab('monitoring')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-neoncyan/20 text-slate-200 hover:text-neoncyan transition flex items-center space-x-1">
+                <i data-lucide="monitor" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span>4-Way View</span>
+            </button>
+            <button onclick="switchTab('optimization')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-neoncyan/20 text-slate-200 hover:text-neoncyan transition flex items-center space-x-1">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>AI Rules</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        let socket = null;
+        let trafficData = null;
+        let selectedJunctionId = "Junction A";
+        let lastYoloResult = null;
+        let simSpeedMultiplier = 1;
+        let audioEnabled = true;
+        let audioCtx = null;
+        let localSimInterval = null;
+        let leafletMap = null;
+        let leafletMarkers = {};
+        let chartDaily = null;
+        let chartWait = null;
+        let chartCongestion = null;
+
+        // Autonomous initial simulation state (6 Intersections)
+        const initialJunctionsData = [
+            {
+                id: "Junction A",
+                code: "J01",
+                short_id: "J1",
+                name: "Junction 01 (Downtown Cross)",
+                lat: 17.4483,
+                lng: 78.3741,
+                directions: {
+                    "North-South": { vehicle_count: 24, cars: 16, motorcycles: 5, buses: 2, trucks: 1, queue_length: 6, density: 0.40, waiting_time: 14.5, signal: "Green", timer: 30 },
+                    "East-West": { vehicle_count: 14, cars: 9, motorcycles: 3, buses: 1, trucks: 1, queue_length: 3, density: 0.25, waiting_time: 8.0, signal: "Red", timer: 30 }
+                },
+                current_active: "North-South",
+                congestion_level: "Moderate",
+                has_incident: false,
+                emergency_override: false
+            },
+            {
+                id: "Junction B",
+                code: "J02",
+                short_id: "J2",
+                name: "Junction 02 (Subway Plaza)",
+                lat: 17.4265,
+                lng: 78.4123,
+                directions: {
+                    "North-South": { vehicle_count: 12, cars: 8, motorcycles: 2, buses: 1, trucks: 1, queue_length: 2, density: 0.20, waiting_time: 6.5, signal: "Red", timer: 25 },
+                    "East-West": { vehicle_count: 22, cars: 14, motorcycles: 4, buses: 2, trucks: 2, queue_length: 5, density: 0.35, waiting_time: 12.0, signal: "Green", timer: 25 }
+                },
+                current_active: "East-West",
+                congestion_level: "Low",
+                has_incident: false,
+                emergency_override: false
+            },
+            {
+                id: "Junction C",
+                code: "J03",
+                short_id: "J3",
+                name: "Junction 03 (Financial District)",
+                lat: 17.4401,
+                lng: 78.3489,
+                directions: {
+                    "North-South": { vehicle_count: 28, cars: 18, motorcycles: 6, buses: 2, trucks: 2, queue_length: 8, density: 0.48, waiting_time: 18.0, signal: "Green", timer: 30 },
+                    "East-West": { vehicle_count: 15, cars: 10, motorcycles: 3, buses: 1, trucks: 1, queue_length: 3, density: 0.26, waiting_time: 9.0, signal: "Red", timer: 30 }
+                },
+                current_active: "North-South",
+                congestion_level: "Moderate",
+                has_incident: false,
+                emergency_override: false
+            },
+            {
+                id: "Junction D",
+                code: "J04",
+                short_id: "J4",
+                name: "Junction 04 (Industrial Arterial)",
+                lat: 17.4375,
+                lng: 78.4482,
+                directions: {
+                    "North-South": { vehicle_count: 8, cars: 4, motorcycles: 1, buses: 1, trucks: 2, queue_length: 1, density: 0.14, waiting_time: 4.0, signal: "Red", timer: 15 },
+                    "East-West": { vehicle_count: 10, cars: 5, motorcycles: 2, buses: 1, trucks: 2, queue_length: 2, density: 0.16, waiting_time: 5.0, signal: "Green", timer: 15 }
+                },
+                current_active: "East-West",
+                congestion_level: "Low",
+                has_incident: false,
+                emergency_override: false
+            },
+            {
+                id: "Junction E",
+                code: "J05",
+                short_id: "J5",
+                name: "Junction 05 (Residential Boulevard)",
+                lat: 17.3616,
+                lng: 78.4747,
+                directions: {
+                    "North-South": { vehicle_count: 6, cars: 4, motorcycles: 1, buses: 1, trucks: 0, queue_length: 1, density: 0.10, waiting_time: 3.0, signal: "Green", timer: 18 },
+                    "East-West": { vehicle_count: 5, cars: 3, motorcycles: 1, buses: 1, trucks: 0, queue_length: 1, density: 0.08, waiting_time: 2.5, signal: "Red", timer: 18 }
+                },
+                current_active: "North-South",
+                congestion_level: "Low",
+                has_incident: false,
+                emergency_override: false
+            },
+            {
+                id: "Junction F",
+                code: "J06",
+                short_id: "J6",
+                name: "Junction 06 (Highway Gateway)",
+                lat: 17.4435,
+                lng: 78.4983,
+                directions: {
+                    "North-South": { vehicle_count: 18, cars: 12, motorcycles: 3, buses: 1, trucks: 2, queue_length: 4, density: 0.30, waiting_time: 10.0, signal: "Red", timer: 20 },
+                    "East-West": { vehicle_count: 20, cars: 13, motorcycles: 4, buses: 1, trucks: 2, queue_length: 5, density: 0.32, waiting_time: 11.0, signal: "Green", timer: 20 }
+                },
+                current_active: "East-West",
+                congestion_level: "Low",
+                has_incident: false,
+                emergency_override: false
+            }
+        ];
+
+        trafficData = {
+            metrics: {
+                total_vehicles: 112,
+                cars: 74,
+                motorcycles: 18,
+                buses: 10,
+                trucks: 10,
+                active_intersections: 6,
+                congested_roads: 0,
+                avg_waiting_time: 12.5,
+                avg_density: 0.28,
+                current_signal: "🟢 NORTH/SOUTH",
+                next_signal: "EAST/WEST",
+                time_remaining_sec: 24,
+                recommended_green_sec: 30,
+                ai_recommendation_explanation: "Junction 01 North-South approach currently has the higher traffic density (24 vehicles). Recommended green phase: 30 seconds."
+            },
+            scenario: {
+                preset: "balanced",
+                label: "Balanced Mode",
+                traffic_condition: "NORMAL",
+                signal_strategy: "Adaptive / Balanced",
+                status_text: "Standard simulated traffic conditions with balanced vehicle distribution. Signals operating normally."
+            },
+            junctions: JSON.parse(JSON.stringify(initialJunctionsData)),
+            alerts: [
+                { id: 1, title: "System Ready", message: "AI Traffic Simulation initialized with adaptive signal control logic.", type: "info", timestamp: "Just now" }
+            ],
+            emergency_route: null,
+            emergency_step: 0
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            runStartupSequence();
+            setInterval(updateClock, 1000);
+            startAutonomousLocalSimulation();
+        });
+
+        // Web Audio Synthesizer
+        function playAudioFeedback(type = "click") {
+            if (!audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === "suspended") audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                if (type === "click") {
+                    osc.frequency.setValueAtTime(580, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } else if (type === "emergency") {
+                    osc.type = "sawtooth";
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                }
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById("icon-sound");
+            const btn = document.getElementById("btn-sound");
+            if (audioEnabled) {
+                icon.setAttribute("data-lucide", "volume-2");
+                btn.className = "p-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-glassborder text-neoncyan transition";
+                playAudioFeedback("click");
+            } else {
+                icon.setAttribute("data-lucide", "volume-x");
+                btn.className = "p-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-glassborder text-slate-500 transition";
+            }
+            lucide.createIcons();
+        }
+
+        function runStartupSequence() {
+            setTimeout(() => advanceStartupStep("loader-step-1", "loader-step-2"), 250);
+            setTimeout(() => advanceStartupStep("loader-step-2", "loader-step-3"), 500);
+            setTimeout(() => advanceStartupStep("loader-step-3", "loader-step-4"), 750);
+            setTimeout(() => {
+                advanceStartupStep("loader-step-4", null);
+                fastTrackStartup();
+            }, 1000);
+        }
+
+        function advanceStartupStep(currId, nextId) {
+            const el = document.getElementById(currId);
+            if (el) {
+                el.classList.replace("text-slate-600", "text-emerald-400");
+                el.querySelector("span:last-child").innerHTML = '<i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1 text-emerald-400"></i> Done';
+            }
+            if (nextId) {
+                const next = document.getElementById(nextId);
+                if (next) {
+                    next.classList.replace("text-slate-600", "text-neoncyan");
+                    next.querySelector("span:last-child").innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Loading';
+                }
+            }
+            lucide.createIcons();
+        }
+
+        function fastTrackStartup() {
+            const loader = document.getElementById("startup-screen");
+            loader.classList.add("opacity-0", "pointer-events-none");
+            document.getElementById("main-app").classList.remove("hidden");
+            
+            initWebSocket();
+            loadStaticAnalytics();
+            updateDashboardUI();
+            updateSandboxSim();
+            initLeafletMap();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById("current-time").textContent = now.toTimeString().split(' ')[0];
+        }
+
+        function switchTab(tabId) {
+            playAudioFeedback("click");
+            document.querySelectorAll(".tab-page").forEach(page => page.classList.add("hidden"));
+            const targetPage = document.getElementById(`page-${tabId}`);
+            if (targetPage) targetPage.classList.remove("hidden");
+            
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if (targetNav) targetNav.classList.add("active");
+            
+            if (tabId === 'analytics') {
+                setTimeout(loadStaticAnalytics, 150);
+            }
+            if (tabId === 'map') {
+                setTimeout(() => {
+                    if (leafletMap) leafletMap.invalidateSize();
+                }, 200);
+            }
+            lucide.createIcons();
+        }
+
+        // ==================== FUNCTIONAL PRESETS ====================
+        function applyScenarioPreset(preset) {
+            playAudioFeedback("click");
+            preset = preset.toLowerCase();
+
+            // Highlight button
+            document.querySelectorAll(".preset-btn").forEach(b => {
+                b.className = "preset-btn px-3 py-1 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-glassborder transition flex items-center space-x-1.5";
+            });
+            const activeBtn = document.getElementById(`preset-btn-${preset}`);
+            if (activeBtn) {
+                activeBtn.className = `preset-btn px-3 py-1 text-xs font-semibold rounded-lg border transition flex items-center space-x-1.5 active-preset-${preset}`;
+            }
+
+            // Call Backend API
+            fetch(`/api/preset/${preset}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.state) {
+                        trafficData = data.state;
+                        updateDashboardUI();
+                    }
+                })
+                .catch(() => {
+                    // Local fallback
+                    applyLocalPreset(preset);
+                });
+        }
+
+        function applyLocalPreset(preset) {
+            trafficData.scenario.preset = preset;
+            const jA = trafficData.junctions[0];
+
+            if (preset === "balanced") {
+                trafficData.scenario.label = "Balanced Mode";
+                trafficData.scenario.traffic_condition = "NORMAL";
+                trafficData.scenario.signal_strategy = "Adaptive / Balanced";
+                trafficData.scenario.status_text = "Standard simulated traffic conditions with balanced vehicle distribution. Signals operating normally.";
+                trafficData.emergency_route = null;
+                
+                trafficData.junctions.forEach(j => {
+                    j.has_incident = false;
+                    j.emergency_override = false;
+                    j.directions["North-South"].vehicle_count = Math.floor(Math.random() * 6) + 8;
+                    j.directions["East-West"].vehicle_count = Math.floor(Math.random() * 6) + 6;
+                    j.congestion_level = "Low";
+                });
+                showNotificationToast("Preset: Balanced", "Normal simulated traffic flow calibrated.", "success");
+            } else if (preset === "rush") {
+                trafficData.scenario.label = "Rush Hour Simulation Active";
+                trafficData.scenario.traffic_condition = "HIGH";
+                trafficData.scenario.signal_strategy = "Extended Green / Congestion Reduction";
+                trafficData.scenario.status_text = "Peak-hour traffic surge active across network (Simulation). Extended green light timers active.";
+                trafficData.emergency_route = null;
+                
+                trafficData.junctions.forEach((j, idx) => {
+                    j.has_incident = false;
+                    j.emergency_override = false;
+                    j.directions["North-South"].vehicle_count = Math.floor(Math.random() * 10) + 24;
+                    j.directions["East-West"].vehicle_count = Math.floor(Math.random() * 8) + 14;
+                    j.congestion_level = idx < 3 ? "High" : "Moderate";
+                });
+                showNotificationToast("Preset: Rush Hour", "Rush Hour Simulation Active: Heavy traffic volume across city corridors.", "warning");
+            } else if (preset === "emergency") {
+                trafficData.scenario.label = "Emergency Priority Simulation";
+                trafficData.scenario.traffic_condition = "HIGH";
+                trafficData.scenario.signal_strategy = "Emergency Priority Corridor";
+                trafficData.scenario.status_text = "Simulated emergency priority corridor gives temporary green wave preference to Junction 02 ➔ Junction 01 ➔ Junction 04.";
+                trafficData.emergency_route = ["Junction B", "Junction A", "Junction D"];
+                
+                trafficData.junctions.forEach(j => {
+                    if (["Junction A", "Junction B", "Junction D"].includes(j.id)) {
+                        j.emergency_override = true;
+                        j.current_active = "North-South";
+                        j.directions["North-South"].signal = "Green";
+                        j.directions["North-South"].timer = 45;
+                        j.directions["East-West"].signal = "Red";
+                        j.directions["East-West"].timer = 45;
+                    }
+                });
+                showNotificationToast("EMERGENCY PRIORITY SIMULATION", "Priority Corridor: Junction 02 → Junction 05. Temporary green phase active.", "emergency");
+            } else if (preset === "incident") {
+                trafficData.scenario.label = "Traffic Incident Simulation";
+                trafficData.scenario.traffic_condition = "HIGH";
+                trafficData.scenario.signal_strategy = "Adaptive Incident Compensation";
+                trafficData.scenario.status_text = "Simulated roadway obstruction on East-West approach at Junction 01. System applying adaptive signal compensation.";
+                trafficData.emergency_route = null;
+                
+                jA.has_incident = true;
+                jA.incident_desc = "Simulated road obstruction on East-West approach.";
+                jA.directions["East-West"].vehicle_count = 34;
+                jA.congestion_level = "High";
+                showNotificationToast("Traffic Incident Simulation", "Simulated road obstruction at Junction 01 (East-West approach).", "danger");
+            }
+            updateDashboardUI();
+        }
+
+        // ==================== DASHBOARD & MAP UI UPDATE ====================
+        function updateDashboardUI() {
+            if (!trafficData) return;
+
+            const m = trafficData.metrics;
+            const s = trafficData.scenario;
+            const jA = trafficData.junctions.find(j => j.id === "Junction A") || trafficData.junctions[0];
+
+            // 1. Scenario Hero Banner
+            if (s) {
+                document.getElementById("banner-mode-pill").textContent = `ACTIVE MODE: ${s.label.toUpperCase()}`;
+                document.getElementById("banner-title").textContent = s.label;
+                document.getElementById("banner-desc").textContent = s.status_text;
+                document.getElementById("banner-condition").textContent = s.traffic_condition === "HIGH" ? "🔴 HIGH" : "🟢 NORMAL";
+                document.getElementById("banner-strategy").textContent = s.signal_strategy;
+                
+                const ctrlPreset = document.getElementById("ctrl-current-preset");
+                if (ctrlPreset) ctrlPreset.textContent = s.label;
+            }
+
+            // 2. Compute live aggregates from junctions
+            let totalVeh = 0;
+            let totalCars = 0;
+            let totalMotos = 0;
+            let totalBuses = 0;
+            let totalTrucks = 0;
+            let congestedCount = 0;
+
+            trafficData.junctions.forEach(j => {
+                const ns = j.directions["North-South"];
+                const ew = j.directions["East-West"];
+                const jVeh = ns.vehicle_count + ew.vehicle_count;
+                totalVeh += jVeh;
+                totalCars += (ns.cars || Math.round(ns.vehicle_count * 0.65)) + (ew.cars || Math.round(ew.vehicle_count * 0.65));
+                totalMotos += (ns.motorcycles || Math.round(ns.vehicle_count * 0.15)) + (ew.motorcycles || Math.round(ew.vehicle_count * 0.15));
+                totalBuses += (ns.buses || Math.round(ns.vehicle_count * 0.10)) + (ew.buses || Math.round(ew.vehicle_count * 0.10));
+                totalTrucks += (ns.trucks || Math.max(0, ns.vehicle_count - Math.round(ns.vehicle_count * 0.90))) + (ew.trucks || Math.max(0, ew.vehicle_count - Math.round(ew.vehicle_count * 0.90)));
+                
+                if (j.congestion_level === "High" || j.has_incident) {
+                    congestedCount++;
+                }
+            });
+
+            // 3. Update Metric Cards
+            document.getElementById("metric-vehicles").textContent = totalVeh;
+            document.getElementById("metric-cars").textContent = totalCars;
+            document.getElementById("metric-motos").textContent = totalMotos;
+            document.getElementById("metric-buses").textContent = totalBuses;
+            document.getElementById("metric-trucks").textContent = totalTrucks;
+
+            const maxDensity = Math.max(...trafficData.junctions.map(j => Math.max(j.directions["North-South"].vehicle_count, j.directions["East-West"].vehicle_count)));
+            let overallDensityLevel = "LOW";
+            let overallThresh = "0–5 (Low Density)";
+            if (maxDensity > 15) {
+                overallDensityLevel = "HIGH";
+                overallThresh = ">15 (High Density Surge)";
+            } else if (maxDensity > 5) {
+                overallDensityLevel = "MEDIUM";
+                overallThresh = "6–15 (Medium Density)";
+            }
+
+            document.getElementById("metric-density-level").textContent = overallDensityLevel;
+            document.getElementById("metric-density-level").className = `text-3xl font-black mt-3 font-mono ${overallDensityLevel === 'HIGH' ? 'text-rose-400' : (overallDensityLevel === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400')}`;
+            document.getElementById("metric-density-threshold").textContent = overallThresh;
+
+            document.getElementById("metric-congested-count").textContent = `${congestedCount} / 6`;
+            document.getElementById("metric-congested-status").textContent = congestedCount > 0 ? `${congestedCount} Congested Node${congestedCount > 1 ? 's' : ''}` : "Optimal Flow";
+            document.getElementById("metric-congested-status").className = congestedCount > 0 ? "text-rose-400 font-bold" : "text-emerald-400 font-bold";
+
+            // 4. Update AI Recommendation Card
+            const nsVeh = jA.directions["North-South"].vehicle_count;
+            const ewVeh = jA.directions["East-West"].vehicle_count;
+            let recGreenSec = 15;
+            let focusApproach = "North-South";
+            let focusVeh = nsVeh;
+            if (nsVeh >= ewVeh) {
+                focusApproach = "North-South";
+                focusVeh = nsVeh;
+            } else {
+                focusApproach = "East-West";
+                focusVeh = ewVeh;
+            }
+            if (focusVeh > 15) recGreenSec = 45;
+            else if (focusVeh > 5) recGreenSec = 30;
+
+            document.getElementById("card-ai-recommendation").textContent = `Junction 01 (${focusApproach} approach) currently has ${focusVeh} vehicles (${focusVeh > 15 ? 'HIGH' : (focusVeh > 5 ? 'MEDIUM' : 'LOW')} density). The AI optimization logic recommends a green phase duration of ${recGreenSec} seconds.`;
+
+            // 5. Update Live Approach Status for Junction 01
+            const nsSignal = jA.directions["North-South"].signal;
+            const ewSignal = jA.directions["East-West"].signal;
+            document.getElementById("quick-north-status").textContent = `${Math.ceil(nsVeh / 2)} veh (${nsSignal === 'Green' ? '🟢 GREEN' : '🔴 RED'})`;
+            document.getElementById("quick-south-status").textContent = `${Math.floor(nsVeh / 2)} veh (${nsSignal === 'Green' ? '🟢 GREEN' : '🔴 RED'})`;
+            document.getElementById("quick-east-status").textContent = `${Math.ceil(ewVeh / 2)} veh (${ewSignal === 'Green' ? '🟢 GREEN' : '🔴 RED'})`;
+            document.getElementById("quick-west-status").textContent = `${Math.floor(ewVeh / 2)} veh (${ewSignal === 'Green' ? '🟢 GREEN' : '🔴 RED'})`;
+
+            // 6. Update City Traffic Network Grid on Overview
+            renderOverviewJunctionsGrid();
+
+            // 7. Update Live Traffic Map Nodes & Topology
+            updateMapTopologyUI();
+
+            // 8. Update Optimization Table
+            renderOptimizationTable();
+
+            // 9. Update 4-Way Visualizer
+            updateVisualizer();
+
+            // 10. Update Alerts Feed
+            if (trafficData.alerts && trafficData.alerts.length > 0) {
+                const log = document.getElementById("alerts-log");
+                let html = "";
+                trafficData.alerts.slice(0, 5).forEach(alert => {
+                    let border = "border-l-neoncyan";
+                    let bg = "bg-slate-900/60";
+                    if (alert.type === "warning") { border = "border-l-amber-400"; bg = "bg-amber-950/20"; }
+                    else if (alert.type === "danger") { border = "border-l-rose-500"; bg = "bg-rose-950/30"; }
+                    else if (alert.type === "emergency") { border = "border-l-red-500 shadow-neon"; bg = "bg-red-950/40"; }
+
+                    html += `
+                        <div class="p-3 ${bg} rounded-2xl border border-glassborder border-l-4 ${border} text-xs space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold uppercase font-mono tracking-wider text-white">${alert.title}</span>
+                                <span class="font-mono text-[9px] text-slate-500">${alert.timestamp || 'Live'}</span>
+                            </div>
+                            <p class="text-slate-300 leading-snug">${alert.message}</p>
+                        </div>
+                    `;
+                });
+                log.innerHTML = html;
+            }
+        }
+
+        // ==================== CITY TRAFFIC NETWORK LIVE GRID ====================
+        function renderOverviewJunctionsGrid() {
+            const container = document.getElementById("overview-junctions-grid");
+            if (!container || !trafficData) return;
+
+            let html = "";
+            trafficData.junctions.forEach(j => {
+                const activeDir = j.current_active;
+                const activeSig = j.directions[activeDir].signal;
+                const timer = j.directions[activeDir].timer;
+                const totalV = j.directions["North-South"].vehicle_count + j.directions["East-West"].vehicle_count;
+                
+                let densityColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+                let densityLabel = "🟢 LOW";
+                if (j.congestion_level === "High" || j.has_incident) {
+                    densityColor = "text-rose-400 bg-rose-500/10 border-rose-500/30";
+                    densityLabel = j.has_incident ? "⚠️ INCIDENT" : "🔴 HIGH";
+                } else if (j.congestion_level === "Moderate") {
+                    densityColor = "text-amber-400 bg-amber-500/10 border-amber-500/30";
+                    densityLabel = "🟡 MED";
+                }
+
+                html += `
+                    <div onclick="inspectJunction('${j.id}')" class="cursor-pointer bg-slate-950/70 hover:bg-slate-900/90 p-4 rounded-2xl border border-glassborder hover:border-neoncyan/50 transition space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-mono font-bold text-xs text-white">${j.name || j.id}</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${densityColor}">
+                                ${densityLabel}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs font-mono text-slate-300">
+                            <div>Total Vehicles: <strong class="text-white">${totalV}</strong></div>
+                            <div>Active Corridor: <strong class="text-neoncyan">${activeDir === 'North-South' ? 'N-S' : 'E-W'}</strong></div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-glassborder text-xs font-mono">
+                            <span class="flex items-center space-x-1">
+                                <span class="w-2.5 h-2.5 rounded-full ${activeSig === 'Green' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}"></span>
+                                <span class="${activeSig === 'Green' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}">${activeSig.toUpperCase()} PHASE</span>
+                            </span>
+                            <span class="text-white font-bold bg-slate-900 px-2 py-0.5 rounded border border-glassborder">${timer}s left</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // ==================== LIVE TRAFFIC MAP LOGIC ====================
+        function setMapViewMode(mode) {
+            playAudioFeedback("click");
+            const btnTopology = document.getElementById("btn-view-topology");
+            const btnGis = document.getElementById("btn-view-gis");
+            const viewTopology = document.getElementById("map-topology-view");
+            const viewGis = document.getElementById("map-gis-view");
+
+            if (mode === "topology") {
+                btnTopology.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-neoncyan";
+                btnGis.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white";
+                viewTopology.classList.remove("hidden");
+                viewGis.classList.add("hidden");
+            } else {
+                btnGis.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-neoncyan";
+                btnTopology.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white";
+                viewTopology.classList.add("hidden");
+                viewGis.classList.remove("hidden");
+                setTimeout(() => {
+                    if (leafletMap) leafletMap.invalidateSize();
+                }, 100);
+            }
+        }
+
+        function selectMapJunction(jId) {
+            playAudioFeedback("click");
+            selectedJunctionId = jId;
+            updateMapDrawer();
+            
+            // Highlight selected node in topology view
+            document.querySelectorAll("[id^='map-node-']").forEach(node => {
+                node.classList.remove("border-neoncyan", "shadow-neon", "border-2");
+                node.classList.add("border", "border-glassborder");
+            });
+            const selEl = document.getElementById(`map-node-${jId}`);
+            if (selEl) {
+                selEl.classList.remove("border-glassborder");
+                selEl.classList.add("border-2", "border-neoncyan", "shadow-neon");
+            }
+        }
+
+        function updateMapTopologyUI() {
+            if (!trafficData) return;
+
+            const isEmergency = trafficData.scenario.preset === "emergency" || (trafficData.emergency_route && trafficData.emergency_route.length > 0);
+            const isIncident = trafficData.scenario.preset === "incident";
+
+            // Emergency SVG path toggle
+            const svgEmerg = document.getElementById("svg-emergency-route");
+            if (svgEmerg) {
+                if (isEmergency) svgEmerg.classList.remove("hidden");
+                else svgEmerg.classList.add("hidden");
+            }
+
+            // Map scenario alert banner
+            const mapAlert = document.getElementById("map-scenario-alert");
+            if (mapAlert) {
+                if (isEmergency) {
+                    mapAlert.classList.remove("hidden");
+                    mapAlert.className = "p-4 rounded-2xl border border-red-500/50 bg-red-950/70 text-xs font-mono flex items-center justify-between text-red-200 shadow-glowcard";
+                    mapAlert.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+                            <div>
+                                <strong class="text-white uppercase">🚨 EMERGENCY PRIORITY SIMULATION ACTIVE</strong>
+                                <p class="text-[11px] text-red-300">Priority Green Corridor: Junction 02 &rarr; Junction 01 &rarr; Junction 04. Temporary green wave active.</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded bg-red-600 text-white font-bold">SIGNAL OVERRIDE</span>
+                    `;
+                } else if (isIncident) {
+                    mapAlert.classList.remove("hidden");
+                    mapAlert.className = "p-4 rounded-2xl border border-rose-500/50 bg-rose-950/70 text-xs font-mono flex items-center justify-between text-rose-200 shadow-glowcard";
+                    mapAlert.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <span class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
+                            <div>
+                                <strong class="text-white uppercase">⚠️ TRAFFIC INCIDENT SIMULATION ACTIVE</strong>
+                                <p class="text-[11px] text-rose-300">Obstruction reported at Junction 01 (East-West approach). Adaptive compensation active.</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded bg-rose-600 text-white font-bold">ADAPTIVE COMPENSATION</span>
+                    `;
+                } else {
+                    mapAlert.classList.add("hidden");
+                }
+            }
+
+            // Update each node in topology view
+            trafficData.junctions.forEach(j => {
+                const nodeEl = document.getElementById(`map-node-${j.id}`);
+                if (!nodeEl) return;
+
+                const ns = j.directions["North-South"];
+                const ew = j.directions["East-West"];
+                const totalV = ns.vehicle_count + ew.vehicle_count;
+                const activeDir = j.current_active;
+                const activeSig = j.directions[activeDir].signal;
+                const timer = j.directions[activeDir].timer;
+
+                // Vehicle count element
+                const vcEl = nodeEl.querySelector(".node-veh-count");
+                if (vcEl) vcEl.textContent = totalV;
+
+                // Density badge element
+                const badgeEl = nodeEl.querySelector(".node-density-badge");
+                const dotEl = nodeEl.querySelector(".node-status-dot");
+                if (badgeEl) {
+                    if (j.has_incident) {
+                        badgeEl.textContent = "INCIDENT";
+                        badgeEl.className = "node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-400 border border-rose-500/40 animate-pulse";
+                        if (dotEl) dotEl.className = "w-2.5 h-2.5 rounded-full mr-1.5 bg-rose-500";
+                    } else if (j.congestion_level === "High") {
+                        badgeEl.textContent = "HIGH";
+                        badgeEl.className = "node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400";
+                        if (dotEl) dotEl.className = "w-2.5 h-2.5 rounded-full mr-1.5 bg-rose-500";
+                    } else if (j.congestion_level === "Moderate") {
+                        badgeEl.textContent = "MED";
+                        badgeEl.className = "node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400";
+                        if (dotEl) dotEl.className = "w-2.5 h-2.5 rounded-full mr-1.5 bg-amber-400";
+                    } else {
+                        badgeEl.textContent = "LOW";
+                        badgeEl.className = "node-density-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400";
+                        if (dotEl) dotEl.className = "w-2.5 h-2.5 rounded-full mr-1.5 bg-emerald-400";
+                    }
+                }
+
+                // Signal badge element
+                const sigBadgeEl = nodeEl.querySelector(".node-sig-badge");
+                if (sigBadgeEl) {
+                    const shortDir = activeDir === "North-South" ? "NS" : "EW";
+                    sigBadgeEl.textContent = `${activeSig === 'Green' ? '🟢' : '🟡'} ${shortDir} (${timer}s)`;
+                    sigBadgeEl.className = `node-sig-badge font-bold ${activeSig === 'Green' ? 'text-emerald-400' : 'text-amber-400'}`;
+                }
+            });
+
+            updateMapDrawer();
+            updateLeafletMarkers();
+        }
+
+        function updateMapDrawer() {
+            if (!trafficData) return;
+            const j = trafficData.junctions.find(node => node.id === selectedJunctionId) || trafficData.junctions[0];
+            
+            document.getElementById("map-drawer-junction-code").textContent = j.code || j.short_id || j.id;
+            document.getElementById("map-drawer-name").textContent = j.name || j.id;
+            document.getElementById("map-drawer-congestion").textContent = j.has_incident ? "⚠️ Roadway Incident" : (j.congestion_level || "Normal");
+            document.getElementById("map-drawer-congestion").className = j.has_incident || j.congestion_level === 'High' ? "text-rose-400 font-bold" : (j.congestion_level === 'Moderate' ? "text-amber-400 font-bold" : "text-emerald-400 font-bold");
+
+            const ns = j.directions["North-South"];
+            const ew = j.directions["East-West"];
+
+            document.getElementById("map-drawer-ns-sig").textContent = `${ns.signal === 'Green' ? '🟢' : '🔴'} ${ns.signal.toUpperCase()} (${ns.timer}s)`;
+            document.getElementById("map-drawer-ns-sig").className = `px-2 py-0.5 rounded text-[10px] font-bold ${ns.signal === 'Green' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`;
+            document.getElementById("map-drawer-ns-veh").textContent = ns.vehicle_count;
+            document.getElementById("map-drawer-ns-den").textContent = `${Math.round(ns.density * 100)}%`;
+            document.getElementById("map-drawer-ns-q").textContent = ns.queue_length;
+            document.getElementById("map-drawer-ns-w").textContent = `${ns.waiting_time}s`;
+
+            document.getElementById("map-drawer-ew-sig").textContent = `${ew.signal === 'Green' ? '🟢' : '🔴'} ${ew.signal.toUpperCase()} (${ew.timer}s)`;
+            document.getElementById("map-drawer-ew-sig").className = `px-2 py-0.5 rounded text-[10px] font-bold ${ew.signal === 'Green' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`;
+            document.getElementById("map-drawer-ew-veh").textContent = ew.vehicle_count;
+            document.getElementById("map-drawer-ew-den").textContent = `${Math.round(ew.density * 100)}%`;
+            document.getElementById("map-drawer-ew-q").textContent = ew.queue_length;
+            document.getElementById("map-drawer-ew-w").textContent = `${ew.waiting_time}s`;
+        }
+
+        function open4WayVisualizerForSelected() {
+            document.getElementById("visualizer-selector").value = selectedJunctionId;
+            updateVisualizer();
+            switchTab("monitoring");
+        }
+
+        function inspectJunction(jId) {
+            selectedJunctionId = jId;
+            open4WayVisualizerForSelected();
+        }
+
+        // Leaflet Map Initialization
+        function initLeafletMap() {
+            try {
+                const mapEl = document.getElementById("leaflet-map-canvas");
+                if (!mapEl || leafletMap) return;
+
+                leafletMap = L.map('leaflet-map-canvas', {
+                    center: [17.4350, 78.4100],
+                    zoom: 12,
+                    zoomControl: false
+                });
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(leafletMap);
+
+                updateLeafletMarkers();
+            } catch (e) {}
+        }
+
+        function updateLeafletMarkers() {
+            if (!leafletMap || !trafficData) return;
+            try {
+                trafficData.junctions.forEach(j => {
+                    const lat = j.lat || 17.4483;
+                    const lng = j.lng || 78.3741;
+                    const ns = j.directions["North-South"];
+                    const ew = j.directions["East-West"];
+                    const activeDir = j.current_active;
+                    const activeSig = j.directions[activeDir].signal;
+
+                    let color = "#00ff87";
+                    if (j.has_incident || j.congestion_level === "High") color = "#ff007f";
+                    else if (j.congestion_level === "Moderate") color = "#ffd700";
+
+                    if (!leafletMarkers[j.id]) {
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: 10,
+                            fillColor: color,
+                            color: '#ffffff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.85
+                        }).addTo(leafletMap);
+
+                        marker.on('click', () => {
+                            selectMapJunction(j.id);
+                        });
+
+                        leafletMarkers[j.id] = marker;
+                    } else {
+                        leafletMarkers[j.id].setStyle({ fillColor: color });
+                    }
+
+                    leafletMarkers[j.id].bindPopup(`
+                        <div class="font-mono text-xs p-1 space-y-1">
+                            <strong class="text-white block">${j.name}</strong>
+                            <div class="text-slate-300">Vehicles: <strong class="text-cyan-400">${ns.vehicle_count + ew.vehicle_count}</strong></div>
+                            <div class="text-slate-300">Signal: <strong class="text-emerald-400">${activeSig} (${j.directions[activeDir].timer}s)</strong></div>
+                            <div class="text-slate-300">Status: <strong class="text-amber-400">${j.congestion_level}</strong></div>
+                        </div>
+                    `);
+                });
+            } catch (e) {}
+        }
+
+        // ==================== 4-WAY JUNCTION VISUALIZER ====================
+        function changeVisualizerJunction() {
+            selectedJunctionId = document.getElementById("visualizer-selector").value;
+            updateVisualizer();
+            playAudioFeedback("click");
+        }
+
+        function updateVisualizer() {
+            if (!trafficData) return;
+            const j = trafficData.junctions.find(node => node.id === selectedJunctionId) || trafficData.junctions[0];
+            document.getElementById("visualizer-junction-badge").textContent = (j.code || j.id).toUpperCase();
+
+            const ns = j.directions["North-South"];
+            const ew = j.directions["East-West"];
+
+            document.getElementById("vis-ns-count").textContent = ns.vehicle_count;
+            document.getElementById("vis-ns-density").textContent = `${Math.round(ns.density * 100)}%`;
+            document.getElementById("vis-ns-queue").textContent = ns.queue_length;
+            document.getElementById("vis-ns-wait").textContent = `${ns.waiting_time}s`;
+
+            document.getElementById("vis-ew-count").textContent = ew.vehicle_count;
+            document.getElementById("vis-ew-density").textContent = `${Math.round(ew.density * 100)}%`;
+            document.getElementById("vis-ew-queue").textContent = ew.queue_length;
+            document.getElementById("vis-ew-wait").textContent = `${ew.waiting_time}s`;
+
+            // Signal badges
+            document.getElementById("vis-ns-signal-badge").textContent = ns.signal;
+            document.getElementById("vis-ns-signal-badge").className = `px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase border ${getSignalBadgeClass(ns.signal)}`;
+
+            document.getElementById("vis-ew-signal-badge").textContent = ew.signal;
+            document.getElementById("vis-ew-signal-badge").className = `px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase border ${getSignalBadgeClass(ew.signal)}`;
+
+            // LED Lights
+            setVisualLightColor("north", ns.signal);
+            setVisualLightColor("south", ns.signal);
+            setVisualLightColor("west", ew.signal);
+            setVisualLightColor("east", ew.signal);
+
+            // Timers
+            document.getElementById("vis-ns-timer").textContent = `${ns.timer}s`;
+            document.getElementById("vis-ew-timer").textContent = `${ew.timer}s`;
+
+            // Moving vehicle animation
+            const nsCars = document.getElementById("anim-ns-cars");
+            const ewCars = document.getElementById("anim-ew-cars");
+            if (ns.signal === "Green") {
+                nsCars.classList.remove("hidden"); nsCars.classList.add("flex");
+                ewCars.classList.add("hidden"); ewCars.classList.remove("flex");
+            } else {
+                nsCars.classList.add("hidden"); nsCars.classList.remove("flex");
+                ewCars.classList.remove("hidden"); ewCars.classList.add("flex");
+            }
+
+            // AI Decision toast description
+            const recTime = ns.vehicle_count > 15 ? 45 : (ns.vehicle_count > 5 ? 30 : 15);
+            document.getElementById("vis-ai-toast-desc").textContent = `${j.name}: North-South has ${ns.vehicle_count} vehicles, East-West has ${ew.vehicle_count}. System dynamically allocates ${recTime}s green phase.`;
+        }
+
+        function getSignalBadgeClass(signal) {
+            if (signal === "Green") return "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
+            if (signal === "Yellow") return "bg-amber-500/10 border-amber-500/30 text-amber-400";
+            return "bg-rose-500/10 border-rose-500/30 text-rose-400";
+        }
+
+        function setVisualLightColor(direction, signal) {
+            const red = document.getElementById(`light-${direction}-red`);
+            const yellow = document.getElementById(`light-${direction}-yellow`);
+            const green = document.getElementById(`light-${direction}-green`);
+            if (!red || !yellow || !green) return;
+
+            red.className = "w-3 h-3 rounded-full bg-slate-800";
+            yellow.className = "w-3 h-3 rounded-full bg-slate-800";
+            green.className = "w-3 h-3 rounded-full bg-slate-800";
+
+            if (signal === "Red") red.className = "w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_12px_#ff0055]";
+            else if (signal === "Yellow") yellow.className = "w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_12px_#ffd000]";
+            else if (signal === "Green") green.className = "w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_#00ff87]";
+        }
+
+        // ==================== AI SIGNAL OPTIMIZATION TABLE ====================
+        function renderOptimizationTable() {
+            const tbody = document.getElementById("optimization-table-body");
+            if (!tbody || !trafficData) return;
+
+            let html = "";
+            trafficData.junctions.forEach(j => {
+                const activeDir = j.current_active;
+                const vc = j.directions[activeDir].vehicle_count;
+                let density = "LOW";
+                let rec = 15;
+                if (vc > 15) { density = "HIGH"; rec = 45; }
+                else if (vc > 5) { density = "MEDIUM"; rec = 30; }
+
+                html += `
+                    <tr class="hover:bg-slate-900/50 transition">
+                        <td class="py-2.5 px-3 font-bold text-white">${j.name}</td>
+                        <td class="py-2.5 px-3 text-slate-300">${activeDir}</td>
+                        <td class="py-2.5 px-3 font-bold text-white">${vc} veh</td>
+                        <td class="py-2.5 px-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${density === 'HIGH' ? 'bg-rose-500/20 text-rose-400' : (density === 'MEDIUM' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400')}">
+                                ${density}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-400">30s (Fixed)</td>
+                        <td class="py-2.5 px-3 font-bold text-neoncyan">${rec}s (Adaptive)</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ==================== SANDBOX SIMULATION ====================
+        function updateSandboxSim() {
+            const nsVal = parseInt(document.getElementById("sb-slider-ns").value);
+            const ewVal = parseInt(document.getElementById("sb-slider-ew").value);
+
+            document.getElementById("sb-val-ns").textContent = `${nsVal} vehicles`;
+            document.getElementById("sb-val-ew").textContent = `${ewVal} vehicles`;
+
+            const maxVeh = Math.max(nsVal, ewVal);
+            let recGreen = 15;
+            if (maxVeh > 15) recGreen = 45;
+            else if (maxVeh > 5) recGreen = 30;
+
+            document.getElementById("sb-result-green").textContent = recGreen;
+            const priorityDir = nsVal >= ewVal ? "North-South" : "East-West";
+            document.getElementById("sb-result-priority").textContent = `Prioritizes ${priorityDir} Approach (${maxVeh > 15 ? 'High' : (maxVeh > 5 ? 'Medium' : 'Low')} Density)`;
+            document.getElementById("sb-result-explanation").textContent = `${priorityDir} approach has ${maxVeh} vehicles, allocating ${recGreen}-second green cycle under adaptive optimization logic.`;
+        }
+
+        function resetSandboxSliders() {
+            document.getElementById("sb-slider-ns").value = 18;
+            document.getElementById("sb-slider-ew").value = 8;
+            updateSandboxSim();
+            playAudioFeedback("click");
+        }
+
+        // ==================== LOCAL SIMULATION LOOP ====================
+        function startAutonomousLocalSimulation() {
+            if (localSimInterval) clearInterval(localSimInterval);
+
+            localSimInterval = setInterval(() => {
+                if (!document.getElementById("btn-resume").classList.contains("hidden")) return;
+
+                trafficData.junctions.forEach(j => {
+                    const activeDir = j.current_active;
+                    const inactiveDir = activeDir === "North-South" ? "East-West" : "North-South";
+
+                    j.directions[activeDir].timer -= 1 * simSpeedMultiplier;
+
+                    // Transition light
+                    if (j.directions[activeDir].timer <= 0) {
+                        j.current_active = inactiveDir;
+                        j.directions[activeDir].signal = "Red";
+                        j.directions[inactiveDir].signal = "Green";
+
+                        const nextVc = j.directions[inactiveDir].vehicle_count;
+                        let nextTimer = 15;
+                        if (nextVc > 15) nextTimer = 45;
+                        else if (nextVc > 5) nextTimer = 30;
+
+                        j.directions[inactiveDir].timer = nextTimer;
+                        j.directions[activeDir].timer = nextTimer;
+                    }
+                });
+
+                updateDashboardUI();
+            }, 1000 / simSpeedMultiplier);
+        }
+
+        function setSimSpeed(spd) {
+            simSpeedMultiplier = spd;
+            document.querySelectorAll("[id^='spd-']").forEach(b => b.className = "px-2 py-1 rounded-lg text-slate-400 hover:text-white");
+            const activeBtn = document.getElementById(`spd-${spd}x`);
+            if (activeBtn) activeBtn.className = "px-2 py-1 rounded-lg bg-slate-800 text-neoncyan font-bold";
+            startAutonomousLocalSimulation();
+            playAudioFeedback("click");
+        }
+
+        function controlSim(action) {
+            playAudioFeedback("click");
+            const btnPause = document.getElementById("btn-pause");
+            const btnResume = document.getElementById("btn-resume");
+
+            if (action === "pause") {
+                btnPause.classList.add("hidden");
+                btnResume.classList.remove("hidden");
+                showNotificationToast("Simulation Paused", "Traffic updates paused.", "warning");
+            } else if (action === "resume") {
+                btnPause.classList.remove("hidden");
+                btnResume.classList.add("hidden");
+                showNotificationToast("Simulation Resumed", "Real-time simulation running.", "success");
+            } else if (action === "reset") {
+                applyScenarioPreset("balanced");
+                showNotificationToast("Network Reset", "Re-initialized to Balanced Mode.", "success");
+            }
+        }
+
+        // ==================== WEBSOCKET & ANALYTICS ====================
+        function initWebSocket() {
+            const loc = window.location;
+            if (loc.protocol === "file:") return;
+
+            const wsUri = loc.protocol === "https:" ? `wss://${loc.host}/ws/traffic` : `ws://${loc.host}/ws/traffic`;
+            try {
+                socket = new WebSocket(wsUri);
+                socket.onopen = () => {
+                    const wsStatus = document.getElementById("ctrl-ws-status");
+                    if (wsStatus) wsStatus.textContent = "🟢 Connected (Live Broadcast)";
+                };
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data && data.junctions) {
+                        trafficData = data;
+                        updateDashboardUI();
+                    }
+                };
+                socket.onclose = () => {
+                    const wsStatus = document.getElementById("ctrl-ws-status");
+                    if (wsStatus) wsStatus.textContent = "🟡 Autonomous Local Loop";
+                };
+            } catch (e) {
+                const wsStatus = document.getElementById("ctrl-ws-status");
+                if (wsStatus) wsStatus.textContent = "🟡 Autonomous Local Loop";
+            }
+        }
+
+        function loadStaticAnalytics() {
+            if (chartDaily) chartDaily.destroy();
+            const ctxDaily = document.getElementById("chartDailyVolume").getContext("2d");
+            chartDaily = new Chart(ctxDaily, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Simulated Daily Flow (Vehicles)',
+                        data: [13800, 14500, 14200, 15100, 15800, 12200, 11000],
+                        borderColor: '#00ff87',
+                        backgroundColor: 'rgba(0, 255, 135, 0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1', font: { family: 'Outfit' } } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            if (chartWait) chartWait.destroy();
+            const ctxWait = document.getElementById("chartWaitTime").getContext("2d");
+            chartWait = new Chart(ctxWait, {
+                type: 'bar',
+                data: {
+                    labels: ['Node 01', 'Node 02', 'Node 03', 'Node 04', 'Node 05', 'Node 06'],
+                    datasets: [{
+                        label: 'Simulated Average Delay (sec)',
+                        data: [14.5, 9.2, 18.0, 4.5, 2.8, 10.5],
+                        backgroundColor: 'rgba(0, 240, 255, 0.45)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1', font: { family: 'Outfit' } } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            if (chartCongestion) chartCongestion.destroy();
+            const ctxCong = document.getElementById("chartCongestionDist").getContext("2d");
+            chartCongestion = new Chart(ctxCong, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Density', 'Moderate', 'High Surge'],
+                    datasets: [{
+                        data: [4, 2, 0],
+                        backgroundColor: ['#00ff87', '#ffd700', '#ff007f'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            document.getElementById("congestion-legend").innerHTML = `
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#00ff87]"></span> <span class="text-slate-400">Low Density:</span> <strong class="text-white ml-1">4 Nodes</strong></div>
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#ffd700]"></span> <span class="text-slate-400">Moderate:</span> <strong class="text-white ml-1">2 Nodes</strong></div>
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#ff007f]"></span> <span class="text-slate-400">High Surge:</span> <strong class="text-white ml-1">0 Nodes</strong></div>
+            `;
+        }
+
+        // ==================== OPTIONAL YOLO VIDEO ANALYSIS ====================
+        async function runSampleVideoAnalysis() {
+            playAudioFeedback("click");
+            const placeholder = document.getElementById("video-placeholder");
+            const loading = document.getElementById("video-loading");
+            const display = document.getElementById("video-snapshot-display");
+
+            placeholder.classList.add("hidden");
+            display.classList.add("hidden");
+            loading.classList.remove("hidden");
+
+            try {
+                const res = await fetch("/api/video/sample", { method: "POST" });
+                const data = await res.json();
+                loading.classList.add("hidden");
+
+                if (data && data.status === "success") {
+                    lastYoloResult = data;
+                    renderYoloResults(data);
+                    showNotificationToast("YOLO Detection Complete", `Detected ${data.average_vehicles_detected} average vehicles across video frames.`, "success");
+                } else {
+                    throw new Error(data.detail || "Error running demo video");
+                }
+            } catch (err) {
+                loading.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                showNotificationToast("Demo Video Note", "Using local prototype detection fallback.", "warning");
+                renderMockYoloResult();
+            }
+        }
+
+        async function uploadAndAnalyzeVideo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            playAudioFeedback("click");
+            const placeholder = document.getElementById("video-placeholder");
+            const loading = document.getElementById("video-loading");
+            const display = document.getElementById("video-snapshot-display");
+
+            placeholder.classList.add("hidden");
+            display.classList.add("hidden");
+            loading.classList.remove("hidden");
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const res = await fetch("/api/video/analyze", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                loading.classList.add("hidden");
+
+                if (data && data.status === "success") {
+                    lastYoloResult = data;
+                    renderYoloResults(data);
+                    showNotificationToast("Uploaded Video Processed", `YOLO detected ${data.average_vehicles_detected} vehicles.`, "success");
+                } else {
+                    throw new Error(data.detail || "Error analyzing uploaded video");
+                }
+            } catch (err) {
+                loading.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                showNotificationToast("Upload Error", err.message, "danger");
+            }
+        }
+
+        function renderYoloResults(data) {
+            const display = document.getElementById("video-snapshot-display");
+            const btnApply = document.getElementById("btn-apply-yolo");
+
+            const breakdown = data.vehicle_category_breakdown || { Car: 0, Motorcycle: 0, Bus: 0, Truck: 0 };
+            document.getElementById("yolo-cars-count").textContent = breakdown.Car || 0;
+            document.getElementById("yolo-motos-count").textContent = breakdown.Motorcycle || 0;
+            document.getElementById("yolo-buses-count").textContent = breakdown.Bus || 0;
+            document.getElementById("yolo-trucks-count").textContent = breakdown.Truck || 0;
+            document.getElementById("yolo-total-count").textContent = data.peak_vehicles_detected || Math.round(data.average_vehicles_detected);
+
+            if (data.snapshots && data.snapshots.length > 0) {
+                display.src = data.snapshots[0].image_base64;
+                display.classList.remove("hidden");
+            }
+
+            btnApply.disabled = false;
+        }
+
+        function renderMockYoloResult() {
+            renderYoloResults({
+                status: "success",
+                average_vehicles_detected: 16,
+                peak_vehicles_detected: 18,
+                traffic_density: "HIGH",
+                recommended_green_seconds: 45,
+                vehicle_category_breakdown: { Car: 11, Motorcycle: 3, Bus: 2, Truck: 2 },
+                snapshots: []
+            });
+        }
+
+        function applyYoloToSimulation() {
+            if (!lastYoloResult) return;
+            playAudioFeedback("click");
+            
+            const jA = trafficData.junctions[0];
+            const breakdown = lastYoloResult.vehicle_category_breakdown || {};
+            const total = lastYoloResult.peak_vehicles_detected || 16;
+
+            jA.directions["North-South"].vehicle_count = total;
+            jA.directions["North-South"].cars = breakdown.Car || Math.round(total * 0.65);
+            jA.directions["North-South"].motorcycles = breakdown.Motorcycle || Math.round(total * 0.15);
+            jA.directions["North-South"].buses = breakdown.Bus || Math.round(total * 0.10);
+            jA.directions["North-South"].trucks = breakdown.Truck || Math.round(total * 0.10);
+
+            showNotificationToast("Applied to Simulation", `Loaded ${total} YOLO detected vehicles into Junction 01.`, "success");
+            updateDashboardUI();
+            switchTab("monitoring");
+        }
+
+        // ==================== NOTIFICATION TOASTS ====================
+        function showNotificationToast(title, message, type = "info") {
+            const container = document.getElementById("alert-toast-container");
+            const id = Math.random().toString(36).substring(7);
+            
+            let border = "border-neoncyan/40";
+            let icon = "info";
+            let iconColor = "text-neoncyan";
+            let bg = "bg-slate-950/95";
+            if (type === "warning") { border = "border-amber-400/50"; icon = "alert-circle"; iconColor = "text-amber-400"; }
+            else if (type === "danger") { border = "border-rose-500/50"; icon = "alert-triangle"; iconColor = "text-rose-500"; }
+            else if (type === "success") { border = "border-emerald-400/50"; icon = "check-circle-2"; iconColor = "text-emerald-400"; }
+            else if (type === "emergency") { border = "border-red-500"; icon = "ambulance"; iconColor = "text-red-500"; bg = "bg-red-950/95"; playAudioFeedback("emergency"); }
+
+            const toast = document.createElement("div");
+            toast.id = `toast-${id}`;
+            toast.className = `${bg} border ${border} backdrop-blur-xl p-4 rounded-2xl shadow-glowcard flex items-start space-x-3 transition-all duration-300 translate-x-20 opacity-0 pointer-events-auto max-w-xs`;
+            toast.innerHTML = `
+                <div class="mt-0.5"><i data-lucide="${icon}" class="w-4 h-4 ${iconColor}"></i></div>
+                <div class="flex-1">
+                    <h5 class="text-xs font-bold text-white font-mono uppercase">${title}</h5>
+                    <p class="text-[11px] text-slate-300 mt-1 leading-snug">${message}</p>
+                </div>
+                <button onclick="dismissToast('${id}')" class="text-slate-400 hover:text-white text-xs font-bold">&times;</button>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => toast.classList.remove("translate-x-20", "opacity-0"), 50);
+            setTimeout(() => dismissToast(id), 4500);
+        }
+
+        function dismissToast(id) {
+            const toast = document.getElementById(`toast-${id}`);
+            if (toast) {
+                toast.classList.add("translate-x-20", "opacity-0");
+                setTimeout(() => toast.remove(), 300);
+            }
+        }
+    </script>
+</body>
+</html>

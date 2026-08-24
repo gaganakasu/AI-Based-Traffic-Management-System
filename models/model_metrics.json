@@ -1,0 +1,14 @@
+{
+    "mae": 1.609,
+    "rmse": 1.928,
+    "r2": 0.985,
+    "features": [
+        "vehicle_count",
+        "traffic_density",
+        "queue_length",
+        "is_peak_hour"
+    ],
+    "training_size": 1600,
+    "test_size": 400,
+    "trained_at": "2026-08-21 14:02:21"
+}
